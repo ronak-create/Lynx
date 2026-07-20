@@ -51,6 +51,14 @@ export default function SearchPage() {
   };
 
   const { data: runs = [] } = useQuery({ queryKey: ["runs"], queryFn: api.runs });
+  // latest run per entity — a night of re-runs shouldn't fill the list with duplicates
+  const seen = new Set<string>();
+  const recent = runs.filter((r) => {
+    const key = (r.entity_name ?? r.query).toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 
   return (
     <main className="flex min-h-[100dvh] flex-col items-center px-6 pt-[17vh]">
@@ -146,7 +154,7 @@ export default function SearchPage() {
         </div>
       )}
 
-      {runs.length > 0 && (
+      {recent.length > 0 && (
         <div className="rise mt-14 w-full max-w-xl pb-16">
           <div className="mb-2 flex items-center justify-between">
             <h2 className="flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.14em] text-[var(--muted)] uppercase">
@@ -162,7 +170,7 @@ export default function SearchPage() {
             </Link>
           </div>
           <ul className="panel divide-y divide-[var(--border)] overflow-hidden">
-            {runs.slice(0, 6).map((r) => (
+            {recent.slice(0, 6).map((r) => (
               <li
                 key={r.job_id}
                 onClick={() => router.push(`/research/${r.job_id}`)}
@@ -171,7 +179,12 @@ export default function SearchPage() {
                 <span className="text-[var(--text)] group-hover:text-[var(--text-strong)]">
                   {r.entity_name ?? r.query}
                 </span>
-                <span className="font-mono text-xs text-[var(--faint)] capitalize">{r.status}</span>
+                <span className="flex items-center gap-3 font-mono text-xs text-[var(--faint)]">
+                  <span>
+                    {new Date(r.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                  </span>
+                  <span className="capitalize">{r.status}</span>
+                </span>
               </li>
             ))}
           </ul>
