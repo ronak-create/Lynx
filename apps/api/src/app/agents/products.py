@@ -50,6 +50,9 @@ async def run(ctx: AgentContext) -> dict:
         for product in wikidata_products:
             add(product.name, "wikidata", product.source_url,
                 provider="wikidata", wikidata_id=product.wikidata_id)
+        # Release the write lock before emitting: progress events write job_events on a second
+        # connection, which deadlocks against our own open transaction.
+        session.commit()
         ctx.progress(category, f"Found {len(out)} products in Wikidata")
 
         # Tier 2: offerings the profile agent already pulled from the company's own site.
@@ -63,6 +66,7 @@ async def run(ctx: AgentContext) -> dict:
 
         # Tier 3: last resort — find products/services in press via web search.
         if not out and firecrawl.available() and ctx.llm and ctx.llm.available:
+            session.commit()  # release the write lock before progress + network work
             ctx.progress(category, "Searching the web for products and services")
             results = await firecrawl.search(f"{ctx.root['name']} products services", limit=6)
             text = "\n".join(f"{r.title}. {r.description or ''}" for r in results)

@@ -4,6 +4,8 @@ Reads each job's finished category payloads and projects them onto a shared set 
 (one row per metric, one column per entity). Everything is deterministic — no re-fetching,
 no LLM — so a comparison is instant and works for any run that has completed. Numeric rows
 carry a `best` index so the frontend can highlight the leader."""
+import re
+
 from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import select
 
@@ -64,7 +66,10 @@ def _extract(cats: dict[str, dict]) -> dict[str, dict]:
         if legit.get("age_years") is not None:
             out["domain_age"] = _cell(f"{legit['age_years']}y", _num(legit["age_years"]))
 
-    out["founded"] = _cell(profile.get("founded") or facts.get("founded"))
+    founded = profile.get("founded") or facts.get("founded")
+    if isinstance(founded, str):
+        founded = re.sub(r"(-00)+$", "", founded)  # Wikidata year-precision dates: '2010-00-00' -> '2010'
+    out["founded"] = _cell(founded)
     out["employees"] = _cell(facts.get("employees"), _num(facts.get("employees")))
     out["hq"] = _cell(profile.get("headquarters") or facts.get("hq"))
     out["business_model"] = _cell(profile.get("business_model"))
@@ -98,6 +103,23 @@ def _extract(cats: dict[str, dict]) -> dict[str, dict]:
     comps = competitors.get("competitors") or []
     if comps:
         out["competitors"] = _cell(str(len(comps)), float(len(comps)))
+
+    careers = cats.get("careers", {})
+    if careers.get("count"):
+        out["open_roles"] = _cell(str(careers["count"]), _num(careers["count"]))
+
+    web = cats.get("web_presence", {})
+    repos = web.get("repos") or []
+    if repos:
+        out["github_repos"] = _cell(str(len(repos)), float(len(repos)))
+
+    social = cats.get("social", {})
+    if social.get("total_engagement"):
+        out["social_engagement"] = _cell(f"{social['total_engagement']:,}", _num(social["total_engagement"]))
+
+    people = (cats.get("people", {})).get("people") or []
+    if people:
+        out["key_people"] = _cell(str(len(people)), float(len(people)))
 
     return out
 
@@ -133,6 +155,10 @@ _METRICS = [
     ("patents", "Patents", True),
     ("news_tone", "News tone", True),
     ("competitors", "Competitors tracked", True),
+    ("open_roles", "Open roles", True),
+    ("github_repos", "Public repos", True),
+    ("social_engagement", "Community engagement", True),
+    ("key_people", "Key people tracked", True),
 ]
 
 

@@ -54,6 +54,10 @@ async def run(ctx: AgentContext) -> dict:
                         "wikidata_url": person.source_url, "source": "wikidata"})
             seen.add(person.name.lower())
 
+        # Release the write lock before any slow work: emitting progress opens a second
+        # connection to write job_events, which deadlocks against our own open transaction.
+        session.commit()
+
         # Fall back to the crawled site for private companies with thin Wikidata coverage.
         site = ctx.shared.get("site_content")
         site_url = ctx.shared.get("site_url")
@@ -82,6 +86,7 @@ async def run(ctx: AgentContext) -> dict:
         # Last resort for private companies whose founders aren't on Wikidata or their own site
         # (e.g. Sarvam AI): find them in press/news via web search, then LLM-extract the names.
         if not out and firecrawl.available() and ctx.llm and ctx.llm.available:
+            session.commit()  # release the write lock before progress + network work
             ctx.progress(category, "Searching the web for the founding/leadership team")
             results = await firecrawl.search(f"{ctx.root['name']} founders CEO leadership team", limit=6)
             text = "\n".join(f"{r.title}. {r.description or ''}" for r in results)

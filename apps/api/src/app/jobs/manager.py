@@ -62,9 +62,15 @@ class JobManager:
         seq = (handle.seq + 1) if handle else 1
         if handle:
             handle.seq = seq
-        with get_session() as session:
-            session.add(JobEvent(job_id=job_id, seq=seq, type=type_, agent=agent, payload=payload))
-            session.commit()
+        try:
+            with get_session() as session:
+                session.add(JobEvent(job_id=job_id, seq=seq, type=type_, agent=agent, payload=payload))
+                session.commit()
+        except Exception:
+            # Telemetry must never kill a run. A lock timeout here (e.g. the emitting agent
+            # itself holds an open write transaction) only means this event misses DB replay;
+            # live subscribers still receive it below.
+            log.warning("failed to persist event %s seq=%s for job %s", type_, seq, job_id, exc_info=True)
         event = {"seq": seq, "type": type_, "agent": agent, "payload": payload}
         if handle:
             for queue in list(handle.subscribers):

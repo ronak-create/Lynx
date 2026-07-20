@@ -66,20 +66,29 @@ def _entity_kind_score(s: dict) -> int:
     return score
 
 
-async def _company_summary(sec_title: str) -> dict | None:
-    """Resolve a Wikipedia article for a known company name. Searches by the cleaned name for
-    recall, then ranks non-disambiguation hits: organization-like first, ties broken by title
-    closeness (token_sort_ratio penalises extra tokens like '…of Canada' or 'v. Medtronic')."""
-    prefer = _norm_title(sec_title)
+async def _ranked_summary(term: str, prefer: str, require_org: bool = False) -> dict | None:
+    """Rank non-disambiguation opensearch hits: organization-like first, ties broken by title
+    closeness (token_sort_ratio penalises extra tokens like '…of Canada' or 'v. Medtronic').
+    With require_org, only organization-like articles qualify at all — used when a generic
+    word ("Stripe") must not fall back to whatever article ranks first."""
+    prefer = _norm_title(prefer)
     best, best_score = None, -1e9
-    for hit in await wikipedia.opensearch(_clean_company(sec_title), limit=6):
+    for hit in await wikipedia.opensearch(term, limit=6):
         s = await wikipedia.summary(hit["title"])
         if not s or s.get("disambiguation"):
             continue
-        score = _entity_kind_score(s) + fuzz.token_sort_ratio(prefer, _norm_title(s.get("title") or "")) / 10
+        kind = _entity_kind_score(s)
+        if require_org and kind <= 0:
+            continue
+        score = kind + fuzz.token_sort_ratio(prefer, _norm_title(s.get("title") or "")) / 10
         if score > best_score:
             best, best_score = s, score
     return best
+
+
+async def _company_summary(sec_title: str) -> dict | None:
+    """Resolve a Wikipedia article for a known company name, searched by the cleaned name for recall."""
+    return await _ranked_summary(_clean_company(sec_title), sec_title)
 
 
 async def resolve_query(query: str) -> dict:
@@ -114,6 +123,14 @@ async def resolve_query(query: str) -> dict:
     ambiguous = s is None or s.get("disambiguation")
     if sec and sim >= 60 and (ambiguous or sim >= 88):
         better = await _company_summary(sec["title"])
+        if better:
+            s = better
+
+    # Private companies get no SEC rescue, so a bare name that lands on a disambiguation page
+    # ("Stripe") would otherwise resolve to nothing. Re-rank the search candidates and take an
+    # organization-like article if one exists ("Stripe" -> "Stripe, Inc.").
+    if s is None or s.get("disambiguation"):
+        better = await _ranked_summary(name, name, require_org=True)
         if better:
             s = better
 
@@ -152,6 +169,13 @@ async def resolve_query(query: str) -> dict:
             },
             summary=summary_text,
         )
+        # Resolution is authoritative for the root entity: refresh name and summary even when
+        # the row predates a better resolution (e.g. it was first created from a
+        # disambiguation page and get_or_create_entity won't clobber existing values).
+        if wiki_title:
+            entity.name = name
+        if summary_text:
+            entity.summary = summary_text
         session.commit()
         entity_id = entity.id
 

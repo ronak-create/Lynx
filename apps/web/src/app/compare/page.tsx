@@ -13,7 +13,15 @@ function CompareInner() {
   const [selected, setSelected] = useState<string[]>(initial);
 
   const runs = useQuery({ queryKey: ["runs"], queryFn: api.runs });
-  const completed = (runs.data ?? []).filter((r) => r.status === "completed");
+  // one entry per entity: /runs is newest-first, so the first completed run wins
+  const seen = new Set<string>();
+  const completed = (runs.data ?? []).filter((r) => {
+    if (r.status !== "completed") return false;
+    const key = (r.entity_name ?? r.query).toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 
   const cmp = useQuery({
     queryKey: ["compare", selected],
@@ -69,7 +77,10 @@ function CompareInner() {
                   ) : (
                     <Circle className="h-4 w-4 shrink-0 text-[var(--faint)]" />
                   )}
-                  <span className="truncate">{r.entity_name ?? r.query}</span>
+                  <span className="min-w-0 flex-1 truncate">{r.entity_name ?? r.query}</span>
+                  <span className="shrink-0 text-[10px] text-[var(--faint)]">
+                    {new Date(r.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                  </span>
                 </button>
               );
             })}
