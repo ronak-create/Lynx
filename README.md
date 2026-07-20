@@ -77,3 +77,6 @@ apps/web/src/
 ## Known refinements
 - SEC XBRL parsing for **older** fiscal years occasionally picks a mis-tagged value; recent years are accurate. Isolated in `sources/sec_edgar.py`.
 - yfinance is scraping-based and can break; it degrades to "quote unavailable" rather than failing the run.
+
+## License
+[MIT](LICENSE)
