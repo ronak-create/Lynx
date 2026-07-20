@@ -39,7 +39,7 @@ export function ProgressRail({ agents, running = true }: { agents: JobLiveState[
       <div className="mx-2.5 mb-1.5 h-px overflow-hidden rounded-full bg-[var(--panel-2)]">
         <div
           className="h-full rounded-full bg-[var(--accent)] transition-[width] duration-500 ease-out"
-          style={{ width: `${(done / total) * 100}%` }}
+          style={{ width: total ? `${(done / total) * 100}%` : "0%" }}
         />
       </div>
       <ul className="flex flex-col">

@@ -26,12 +26,16 @@ export default function ResearchPage() {
   const [refreshing, setRefreshing] = useState(false);
   const selectedEntityId = useHighlight((s) => s.selectedEntityId);
   const running = state.jobStatus === "running" || state.jobStatus === "queued";
+  // a run that failed before any agent finished has nothing to show — render an
+  // explanation + re-run instead of a grid of empty cards
+  const deadRun = state.jobStatus === "failed" && Object.keys(state.categories).length === 0;
 
   const refresh = async () => {
-    if (!state.entity?.name || refreshing) return;
+    const query = state.entity?.name ?? state.query;
+    if (!query || refreshing) return;
     setRefreshing(true);
     try {
-      const { job_id } = await api.startResearch(state.entity.name);
+      const { job_id } = await api.startResearch(query);
       router.push(`/research/${job_id}`);
     } catch {
       setRefreshing(false);
@@ -103,7 +107,30 @@ export default function ResearchPage() {
         <div
           className={`flex min-h-0 min-w-0 flex-1 flex-col ${tab === "Dashboard" ? "overflow-y-auto" : ""}`}
         >
-          {tab === "Dashboard" && <DashboardGrid categories={state.categories} running={running} />}
+          {tab === "Dashboard" &&
+            (deadRun ? (
+              <div className="panel flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
+                <WarningCircle weight="fill" className="h-8 w-8 text-[var(--neg)]" />
+                <p className="text-sm font-medium text-[var(--text-strong)]">This run didn&apos;t finish</p>
+                <p className="max-w-md text-sm text-[var(--muted)]">
+                  {state.error ?? "The research was interrupted before any agent could report results."}
+                </p>
+                <button
+                  onClick={refresh}
+                  disabled={refreshing}
+                  className="press mt-2 flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--panel-2)] px-4 py-1.5 text-[13px] font-medium text-[var(--text-strong)] hover:border-[var(--border-strong)] disabled:opacity-40"
+                >
+                  {refreshing ? (
+                    <span className="spinner h-3 w-3" />
+                  ) : (
+                    <ArrowsClockwise weight="bold" className="h-3.5 w-3.5" />
+                  )}
+                  Re-run research
+                </button>
+              </div>
+            ) : (
+              <DashboardGrid categories={state.categories} running={running} />
+            ))}
           {tab === "Graph" && <GraphView jobId={jobId} />}
           {tab === "Documentary" && <DocumentaryView jobId={jobId} running={running} />}
           {tab === "Careers" && <CareersView state={state.categories.careers} running={running} />}

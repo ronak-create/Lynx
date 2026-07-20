@@ -108,7 +108,8 @@ _PROVIDERS = (_greenhouse, _lever, _ashby, _smartrecruiters)
 async def live_jobs(name: str, domain: str | None) -> dict:
     """Aggregate live postings across every ATS the company might use, matched by slug."""
     slugs: list[str] = []
-    for s in (webtech._slug(name), webtech._slug(domain.split(".")[0]) if domain else ""):
+    domain_label = domain.lower().removeprefix("www.").split(".")[0] if domain else ""
+    for s in (webtech._slug(name), webtech._slug(domain_label) if domain_label else ""):
         if s and s not in slugs:
             slugs.append(s)
 

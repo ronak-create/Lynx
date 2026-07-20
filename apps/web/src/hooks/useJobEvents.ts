@@ -5,6 +5,8 @@ import { API_BASE, AgentStatus, api } from "@/lib/api";
 
 export type JobLiveState = {
   jobStatus: "loading" | "queued" | "running" | "completed" | "failed";
+  error: string | null;
+  query: string | null;
   entity: { id: string; name: string; description?: string | null; ticker?: string | null } | null;
   agents: Record<string, { status: AgentStatus; message: string | null }>;
   categories: Record<string, { status: "completed" | "failed"; payload: Record<string, unknown> }>;
@@ -72,6 +74,8 @@ export function useJobEvents(jobId: string): JobLiveState {
   const queryClient = useQueryClient();
   const [state, dispatch] = useReducer(reducer, {
     jobStatus: "loading",
+    error: null,
+    query: null,
     entity: null,
     agents: initialAgents(),
     categories: {},
@@ -95,6 +99,8 @@ export function useJobEvents(jobId: string): JobLiveState {
           type: "snapshot",
           state: {
             jobStatus: job.status as JobLiveState["jobStatus"],
+            error: job.error,
+            query: job.query,
             entity: job.entity,
             agents,
             categories: job.categories,
