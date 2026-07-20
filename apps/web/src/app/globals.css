@@ -1,0 +1,244 @@
+@import "tailwindcss";
+
+/* ============================================================
+   Lynx design tokens — vivid accents on a deep base (dark) and a
+   crisp off-white base (light). One accent (electric violet).
+   No decorative status lights; progress = one monochrome spinner
+   + iconography, loading = a left-to-right shimmer sweep.
+   Every interactive change eases via a shared cubic-bezier, and
+   panels/menus grow from a deliberate transform-origin.
+   ============================================================ */
+
+/* ---- DARK (default) : bright colour on a deep background ---- */
+:root,
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #090a0f;
+  --bg-elev: #0e1017;
+  --panel: #141826;
+  --panel-2: #1d2233;
+  --panel-hover: #232941;
+  --border: #262c40;
+  --border-strong: #333b56;
+  --text: #eef0f8;
+  --text-strong: #ffffff;
+  --muted: #a2aac2;
+  --faint: #6a7290;
+  --accent: #9d7bff;
+  --accent-bright: #b79bff;
+  --accent-soft: rgba(157, 123, 255, 0.16);
+  --accent-line: rgba(157, 123, 255, 0.5);
+  --accent-glow: rgba(157, 123, 255, 0.28);
+  --pos: #4ade9f;
+  --neg: #ff7a92;
+  --ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent-line);
+  --shadow-panel: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-pop: 0 12px 40px rgba(0, 0, 0, 0.55), 0 0 0 1px var(--border);
+  --hero-glow: radial-gradient(140% 100% at 50% -10%, rgba(157, 123, 255, 0.12), transparent 55%);
+}
+
+/* ---- LIGHT : bright accent on a crisp off-white base ---- */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f7f7fb;
+  --bg-elev: #ffffff;
+  --panel: #ffffff;
+  --panel-2: #f1f2f7;
+  --panel-hover: #eceef4;
+  --border: #e4e6ee;
+  --border-strong: #d3d6e2;
+  --text: #21242e;
+  --text-strong: #0c0e14;
+  --muted: #626a80;
+  --faint: #9aa0b3;
+  --accent: #6d3ff2;
+  --accent-bright: #7c4dff;
+  --accent-soft: rgba(109, 63, 242, 0.1);
+  --accent-line: rgba(109, 63, 242, 0.4);
+  --accent-glow: rgba(109, 63, 242, 0.16);
+  --pos: #0f9d63;
+  --neg: #d64560;
+  --ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent-line);
+  --shadow-panel: 0 1px 2px rgba(19, 22, 40, 0.06);
+  --shadow-pop: 0 14px 44px rgba(19, 22, 40, 0.14), 0 0 0 1px var(--border);
+  --hero-glow: radial-gradient(140% 100% at 50% -10%, rgba(109, 63, 242, 0.09), transparent 55%);
+}
+
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-accent: var(--accent);
+  --ease-out-quint: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100%;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  background-image: var(--hero-glow);
+  background-attachment: fixed;
+}
+
+/* ---- shared easing for every action / event ---- */
+*,
+*::before,
+*::after {
+  transition-property: background-color, border-color, color, fill, stroke,
+    box-shadow, opacity, transform;
+  transition-duration: 200ms;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+canvas,
+svg * {
+  transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border: 3px solid transparent;
+  background-clip: content-box;
+  border-radius: 999px;
+}
+::selection {
+  background: var(--accent-soft);
+  color: var(--text-strong);
+}
+
+/* ---- surfaces ---- */
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-panel);
+}
+.panel-2 {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+/* one global focus treatment */
+:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+  border-radius: 8px;
+}
+
+/* tactile press — applied to interactive controls */
+.press {
+  transform-origin: center;
+}
+.press:active {
+  transform: scale(0.97);
+}
+
+/* ---- documentary / entity links ---- */
+.wiki-link {
+  color: var(--accent);
+  cursor: pointer;
+  border-bottom: 1px solid var(--accent-line);
+  border-radius: 2px;
+  padding: 0 1px;
+}
+.wiki-link:hover {
+  background: var(--accent-soft);
+  color: var(--accent-bright);
+}
+
+.doc-prose { color: var(--text); }
+.doc-prose p, .doc-prose li { color: var(--text); }
+.doc-prose h1 { font-size: 1.7rem; font-weight: 700; letter-spacing: -0.02em; margin: 1.2rem 0 0.9rem; color: var(--text-strong); }
+.doc-prose h2 { font-size: 1.2rem; font-weight: 650; letter-spacing: -0.01em; margin: 1.9rem 0 0.7rem; color: var(--text-strong); border-bottom: 1px solid var(--border); padding-bottom: 0.4rem; }
+.doc-prose h3 { font-size: 1rem; font-weight: 620; margin: 1.2rem 0 0.4rem; color: var(--text-strong); }
+.doc-prose p { margin: 0.7rem 0; line-height: 1.75; }
+.doc-prose em { color: var(--muted); }
+.doc-prose strong { color: var(--text-strong); font-weight: 620; }
+.doc-prose ul { list-style: disc; padding-left: 1.4rem; margin: 0.7rem 0; }
+.doc-prose ol { list-style: decimal; padding-left: 1.5rem; margin: 0.7rem 0; }
+.doc-prose li { margin: 0.3rem 0; line-height: 1.7; }
+.doc-prose a { color: var(--accent); text-underline-offset: 3px; }
+.doc-prose a:hover { text-decoration: underline; }
+.doc-prose blockquote { border-left: 2px solid var(--accent-line); padding-left: 1rem; margin: 0.9rem 0; color: var(--muted); }
+.doc-prose table { border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; width: 100%; }
+.doc-prose th, .doc-prose td { border: 1px solid var(--border); padding: 0.4rem 0.85rem; text-align: left; }
+.doc-prose th { background: var(--panel-2); color: var(--text-strong); font-weight: 600; }
+.doc-prose code { background: var(--panel-2); border: 1px solid var(--border); border-radius: 4px; padding: 0.05rem 0.35rem; font-size: 0.85em; font-family: var(--font-mono); }
+
+/* ---- loading skeleton: a shimmer sweep, not a blink ---- */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--panel-2);
+  border-radius: 5px;
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, var(--accent-soft), transparent);
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}
+
+/* monochrome activity spinner — the only "running" affordance */
+.spinner {
+  display: inline-block;
+  border-radius: 999px;
+  border: 1.5px solid var(--border-strong);
+  border-top-color: var(--accent);
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin {
+  100% { transform: rotate(360deg); }
+}
+
+/* ---- entrance animations (deliberate transform-origins) ---- */
+.pop-top {
+  animation: pop-top 200ms var(--ease-out-quint) both;
+  transform-origin: top center;
+}
+@keyframes pop-top {
+  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.pop-right {
+  animation: pop-right 260ms var(--ease-out-quint) both;
+  transform-origin: right center;
+}
+@keyframes pop-right {
+  from { opacity: 0; transform: translateX(14px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.rise {
+  animation: rise 320ms var(--ease-out-quint) both;
+}
+@keyframes rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}

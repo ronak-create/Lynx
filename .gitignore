@@ -1,0 +1,33 @@
+# deps
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+.pnpm-store/
+
+# builds
+.next/
+dist/
+build/
+*.egg-info/
+
+# local data
+data/
+*.db
+*.db-wal
+*.db-shm
+
+# env
+.env
+.env.local
+.env*.local
+
+# misc
+.DS_Store
+Thumbs.db
+*.log
+.pytest_cache/
+.ruff_cache/
+
+# local editor/agent settings
+.claude/settings.local.json
