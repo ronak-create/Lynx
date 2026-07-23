@@ -45,8 +45,8 @@ export default function ResearchPage() {
   return (
     <main className="flex h-screen flex-col overflow-hidden px-5 py-4">
       <header className="mb-4 flex items-center gap-4">
-        <Link href="/" className="press text-lg font-bold text-[var(--text-strong)]">
-          Lynx<span className="text-[var(--accent)]">.</span>
+        <Link href="/" className="press wordmark text-lg font-bold">
+          Lynx<span>.</span>
         </Link>
         <div className="min-w-0">
           <h1 className="truncate text-[17px] font-semibold text-[var(--text-strong)]">
@@ -59,7 +59,7 @@ export default function ResearchPage() {
             <p className="truncate text-xs text-[var(--muted)]">{state.entity.description}</p>
           )}
         </div>
-        <nav className="mx-auto flex gap-0.5 rounded-xl border border-[var(--border)] bg-[var(--panel)] p-1">
+        <nav className="glass-bar mx-auto flex gap-0.5 rounded-xl border p-1">
           {TABS.map((t) => (
             <button
               key={t}
@@ -74,7 +74,7 @@ export default function ResearchPage() {
             </button>
           ))}
         </nav>
-        <div className="ml-auto flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--panel)] px-3 py-1 text-[11px] font-medium">
+        <div className="glass-bar ml-auto flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-medium">
           {running ? (
             <span className="spinner h-3 w-3" />
           ) : state.jobStatus === "failed" ? (
@@ -88,7 +88,7 @@ export default function ResearchPage() {
           onClick={refresh}
           disabled={running || refreshing}
           title="Re-run research for fresh data"
-          className="press flex h-[30px] items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--panel)] px-3 text-[11px] font-medium text-[var(--muted)] hover:border-[var(--border-strong)] hover:text-[var(--text-strong)] disabled:opacity-40"
+          className="glass-bar press flex h-[30px] items-center gap-1.5 rounded-full border px-3 text-[11px] font-medium text-[var(--muted)] hover:border-[var(--border-strong)] hover:text-[var(--text-strong)] disabled:opacity-40"
         >
           {refreshing ? (
             <span className="spinner h-3 w-3" />

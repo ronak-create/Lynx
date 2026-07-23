@@ -8,6 +8,7 @@ import { api, Suggestion } from "@/lib/api";
 import { useSettings } from "@/stores/settings";
 import { SettingsPanel } from "@/components/SettingsPanel";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import SwarmWave, { SwarmHandle } from "@/components/SwarmWave";
 
 export default function SearchPage() {
   const router = useRouter();
@@ -19,6 +20,16 @@ export default function SearchPage() {
   const [showSettings, setShowSettings] = useState(false);
   const { llmProvider, categories } = useSettings();
   const boxRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const swarmRef = useRef<SwarmHandle>(null);
+
+  // ripple a wave through the swarm from the search box — a visual "agents fanning out"
+  const pulseFromSearch = () => {
+    const el = inputRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    swarmRef.current?.pulse(r.left + r.width / 2, r.top + r.height / 2);
+  };
 
   useEffect(() => {
     const t = setTimeout(() => setDebounced(query.trim()), 250);
@@ -41,6 +52,7 @@ export default function SearchPage() {
 
   const start = async (q: string) => {
     if (!q.trim() || starting) return;
+    pulseFromSearch();
     setStarting(true);
     try {
       const { job_id } = await api.startResearch(q.trim(), { llm_provider: llmProvider, categories });
@@ -62,13 +74,14 @@ export default function SearchPage() {
 
   return (
     <main className="flex min-h-[100dvh] flex-col items-center px-6 pt-[17vh]">
+      <SwarmWave ref={swarmRef} />
       <div className="fixed top-5 right-5 z-20">
         <ThemeToggle />
       </div>
 
       <div className="rise flex flex-col items-center">
-        <h1 className="text-5xl font-bold tracking-tight text-[var(--text-strong)]">
-          Lynx<span className="text-[var(--accent)]">.</span>
+        <h1 className="wordmark text-5xl font-bold tracking-tight">
+          Lynx<span>.</span>
         </h1>
         <p className="mt-3 max-w-md text-center text-[15px] text-[var(--muted)]">
           Type a company or paste a URL. Get a live dashboard, a knowledge graph, and a documentary.
@@ -82,8 +95,10 @@ export default function SearchPage() {
             className="pointer-events-none absolute top-1/2 left-4 h-[18px] w-[18px] -translate-y-1/2 text-[var(--faint)]"
           />
           <input
+            ref={inputRef}
             autoFocus
             value={query}
+            onFocus={pulseFromSearch}
             onChange={(e) => {
               setQuery(e.target.value);
               setOpen(true);
@@ -105,7 +120,7 @@ export default function SearchPage() {
             onClick={() => start(query)}
             disabled={!query.trim() || starting}
             aria-label="Start research"
-            className="press absolute top-1/2 right-2.5 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg bg-[var(--accent)] text-white transition-colors hover:bg-[var(--accent-bright)] disabled:opacity-30"
+            className="press btn-accent absolute top-1/2 right-2.5 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg disabled:opacity-30"
           >
             {starting ? <span className="spinner h-4 w-4 border-white/40 border-t-white" /> : <ArrowRight weight="bold" className="h-[18px] w-[18px]" />}
           </button>

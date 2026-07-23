@@ -41,8 +41,8 @@ function CompareInner() {
   return (
     <main className="flex min-h-screen flex-col px-5 py-4">
       <header className="mb-5 flex items-center gap-4">
-        <Link href="/" className="press text-lg font-bold text-[var(--text-strong)]">
-          Lynx<span className="text-[var(--accent)]">.</span>
+        <Link href="/" className="press wordmark text-lg font-bold">
+          Lynx<span>.</span>
         </Link>
         <h1 className="flex items-center gap-2 text-[17px] font-semibold text-[var(--text-strong)]">
           <Scales weight="duotone" className="h-5 w-5 text-[var(--accent)]" />

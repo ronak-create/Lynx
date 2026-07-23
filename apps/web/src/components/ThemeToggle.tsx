@@ -14,7 +14,7 @@ export function ThemeToggle() {
     <div
       role="radiogroup"
       aria-label="Theme"
-      className="flex items-center gap-0.5 rounded-full border border-[var(--border)] bg-[var(--panel)] p-0.5"
+      className="glass-bar flex items-center gap-0.5 rounded-full border p-0.5"
     >
       {OPTIONS.map(({ mode: m, icon: Icon, label }) => {
         const on = mode === m;

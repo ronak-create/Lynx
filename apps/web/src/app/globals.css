@@ -17,7 +17,7 @@
   --bg-elev: #0e1017;
   --panel: #141826;
   --panel-2: #1d2233;
-  --panel-hover: #232941;
+  --panel-hover: rgba(40, 47, 74, 0.55);
   --border: #262c40;
   --border-strong: #333b56;
   --text: #eef0f8;
@@ -35,6 +35,23 @@
   --shadow-panel: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-pop: 0 12px 40px rgba(0, 0, 0, 0.55), 0 0 0 1px var(--border);
   --hero-glow: radial-gradient(140% 100% at 50% -10%, rgba(157, 123, 255, 0.12), transparent 55%);
+  /* frosted-glass surfaces: translucent smoked-violet fill, light-catching edges, deep blur */
+  --glass-bg: rgba(18, 22, 36, 0.55);
+  --glass-bg-2: rgba(29, 34, 51, 0.5);
+  --glass-border: rgba(255, 255, 255, 0.09);
+  --glass-highlight: rgba(255, 255, 255, 0.07);
+  --glass-blur: 18px;
+  --glass-shadow: 0 16px 48px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.3);
+  --glass-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0) 42%);
+  /* refined gradient accent (single violet family, drifting to indigo/blue) for the hero + CTA */
+  --hero-accent: linear-gradient(135deg, #b79bff 0%, #8b7bff 46%, #6ea8ff 100%);
+  --hero-title-glow: 0 0 60px rgba(157, 123, 255, 0.28);
+  --grain-opacity: 0.5;
+  /* ambient colour fields behind content, so the frost refracts something (not flat colour) */
+  --ambient-1: rgba(157, 123, 255, 0.22);
+  --ambient-2: rgba(84, 226, 178, 0.1);
+  --ambient-3: rgba(97, 132, 255, 0.18);
+  --vignette: radial-gradient(125% 120% at 50% 0%, transparent 52%, rgba(0, 0, 0, 0.5) 100%);
 }
 
 /* ---- LIGHT : bright accent on a crisp off-white base ---- */
@@ -44,7 +61,7 @@
   --bg-elev: #ffffff;
   --panel: #ffffff;
   --panel-2: #f1f2f7;
-  --panel-hover: #eceef4;
+  --panel-hover: rgba(236, 238, 244, 0.7);
   --border: #e4e6ee;
   --border-strong: #d3d6e2;
   --text: #21242e;
@@ -62,6 +79,23 @@
   --shadow-panel: 0 1px 2px rgba(19, 22, 40, 0.06);
   --shadow-pop: 0 14px 44px rgba(19, 22, 40, 0.14), 0 0 0 1px var(--border);
   --hero-glow: radial-gradient(140% 100% at 50% -10%, rgba(109, 63, 242, 0.09), transparent 55%);
+  /* frosted-glass surfaces: crisp translucent white, kept legible on the off-white base */
+  --glass-bg: rgba(255, 255, 255, 0.62);
+  --glass-bg-2: rgba(241, 242, 247, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.75);
+  --glass-highlight: rgba(255, 255, 255, 0.9);
+  --glass-blur: 18px;
+  --glass-shadow: 0 16px 44px rgba(19, 22, 40, 0.12), 0 2px 8px rgba(19, 22, 40, 0.06);
+  --glass-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0) 45%);
+  /* refined gradient accent (single violet family, drifting to indigo/blue) for the hero + CTA */
+  --hero-accent: linear-gradient(135deg, #7c4dff 0%, #6d3ff2 50%, #4f7bff 100%);
+  --hero-title-glow: 0 0 50px rgba(109, 63, 242, 0.16);
+  --grain-opacity: 0.22;
+  /* ambient colour fields behind content, so the frost refracts something (not flat colour) */
+  --ambient-1: rgba(109, 63, 242, 0.14);
+  --ambient-2: rgba(15, 157, 99, 0.07);
+  --ambient-3: rgba(97, 132, 255, 0.12);
+  --vignette: radial-gradient(125% 120% at 50% 0%, transparent 60%, rgba(19, 22, 40, 0.06) 100%);
 }
 
 @theme inline {
@@ -71,9 +105,14 @@
   --ease-out-quint: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* Base colour lives on <html> only; <body> stays transparent so the fixed negative-z-index
+   backdrop layers (ambient mesh → swarm canvas → grain) paint above the base and below content.
+   If <body> were opaque it would cover the swarm canvas (which is a descendant, not a body child). */
+html {
+  background: var(--bg);
+}
 html,
 body {
-  background: var(--bg);
   color: var(--text);
   min-height: 100%;
   -webkit-font-smoothing: antialiased;
@@ -83,6 +122,39 @@ body {
 body {
   background-image: var(--hero-glow);
   background-attachment: fixed;
+}
+
+/* Ambient colour fields + vignette fixed behind all content — soft, static (perf +
+   reduced-motion safe) — giving the frosted-glass surfaces depth and colour to refract. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -3;
+  pointer-events: none;
+  background:
+    var(--vignette),
+    radial-gradient(48% 42% at 12% 6%, var(--ambient-1), transparent 60%),
+    radial-gradient(44% 40% at 90% 14%, var(--ambient-3), transparent 62%),
+    radial-gradient(52% 46% at 74% 98%, var(--ambient-2), transparent 60%);
+}
+
+/* Fine film grain over the backdrop — the biggest single lift for a premium dark surface:
+   it breaks up gradient banding and adds a tactile texture. Static SVG noise, GPU-cheap, and
+   it sits behind content (only the background + frosted panels pick it up). */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: var(--grain-opacity);
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
+}
+@media (prefers-reduced-transparency: reduce) {
+  body::after { display: none; }
 }
 
 /* ---- shared easing for every action / event ---- */
@@ -127,17 +199,51 @@ svg * {
   color: var(--text-strong);
 }
 
-/* ---- surfaces ---- */
+/* ---- surfaces: frosted glass ---- */
 .panel {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  box-shadow: var(--shadow-panel);
+  background: var(--glass-sheen), var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-highlight),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.04);
 }
 .panel-2 {
-  background: var(--panel-2);
-  border: 1px solid var(--border);
+  background: var(--glass-sheen), var(--glass-bg-2);
+  backdrop-filter: blur(calc(var(--glass-blur) * 0.7)) saturate(1.4);
+  -webkit-backdrop-filter: blur(calc(var(--glass-blur) * 0.7)) saturate(1.4);
+  border: 1px solid var(--glass-border);
   border-radius: 12px;
+  box-shadow: inset 0 1px 0 var(--glass-highlight);
+}
+
+/* Where backdrop-filter is unsupported, fall back to the original opaque surfaces so text
+   never sits on a see-through panel. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .panel { background: var(--panel); box-shadow: var(--shadow-panel); }
+  .panel-2 { background: var(--panel-2); }
+}
+/* Users who ask the OS to reduce transparency get the solid surfaces back. */
+@media (prefers-reduced-transparency: reduce) {
+  .panel { background: var(--panel); backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .panel-2 { background: var(--panel-2); backdrop-filter: none; -webkit-backdrop-filter: none; }
+}
+
+/* Frosted floating chrome — the tab nav, status pill, theme toggle: prominent bars that sit
+   over content and read best as glass. Lighter blur than full panels so they stay crisp. */
+.glass-bar {
+  background: var(--glass-bg);
+  backdrop-filter: blur(14px) saturate(1.5);
+  -webkit-backdrop-filter: blur(14px) saturate(1.5);
+  border-color: var(--glass-border) !important;
+  box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-highlight);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass-bar { background: var(--panel); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .glass-bar { background: var(--panel); backdrop-filter: none; -webkit-backdrop-filter: none; }
 }
 
 /* one global focus treatment */
@@ -153,6 +259,24 @@ svg * {
 }
 .press:active {
   transform: scale(0.97);
+}
+
+/* ---- premium accents: gradient wordmark + primary CTA ---- */
+.wordmark {
+  background: var(--hero-accent);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(var(--hero-title-glow));
+}
+.btn-accent {
+  background: var(--hero-accent);
+  color: #fff;
+  box-shadow: 0 6px 20px var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+.btn-accent:hover:not(:disabled) {
+  filter: brightness(1.08);
 }
 
 /* ---- documentary / entity links ---- */
