@@ -154,29 +154,36 @@ async def run_job(
             for agent in investigation:
                 tg.create_task(_run_agent(agent, ctx, collected))
 
-    # Phase 3 — Synthesis: distil all results into an executive layer (scorecard/SWOT/timeline).
-    emit("agent_started", agent="synthesis")
-    try:
-        synthesis = await run_synthesis(root, llm, collected)
-        _save_category(job_id, "synthesis", "completed", synthesis)
-        emit("category_data", agent="synthesis", payload=synthesis)
-        emit("agent_completed", agent="synthesis", payload={"method": synthesis.get("method")})
-    except Exception as exc:
-        log.exception("synthesis failed")
-        _save_category(job_id, "synthesis", "failed", {"error": str(exc)})
-        emit("agent_failed", agent="synthesis", payload={"error": str(exc)})
+    # Phases 3 & 4 — Synthesis (scorecard/SWOT/timeline) and the Documentary both consume the
+    # agents' in-memory results read-only and don't depend on each other, so they run
+    # concurrently: the run finishes as soon as the slower of the two (not their sum) is done.
+    async def _synthesis() -> None:
+        emit("agent_started", agent="synthesis")
+        try:
+            synthesis = await run_synthesis(root, llm, collected)
+            _save_category(job_id, "synthesis", "completed", synthesis)
+            emit("category_data", agent="synthesis", payload=synthesis)
+            emit("agent_completed", agent="synthesis", payload={"method": synthesis.get("method")})
+        except Exception as exc:
+            log.exception("synthesis failed")
+            _save_category(job_id, "synthesis", "failed", {"error": str(exc)})
+            emit("agent_failed", agent="synthesis", payload={"error": str(exc)})
 
-    # Phase 4 — Documentary from the agents' in-memory results (race-free).
-    emit("agent_started", agent="documentary")
-    try:
-        markdown, method = await generate_documentary(job_id, root, llm, results=collected)
-        with get_session() as session:
-            session.add(Document(job_id=job_id, entity_id=root["entity_id"], markdown=markdown, method=method))
-            session.commit()
-        emit("agent_completed", agent="documentary", payload={"method": method})
-    except Exception as exc:
-        log.exception("documentary generation failed")
-        emit("agent_failed", agent="documentary", payload={"error": str(exc)})
+    async def _documentary() -> None:
+        emit("agent_started", agent="documentary")
+        try:
+            markdown, method = await generate_documentary(job_id, root, llm, results=collected)
+            with get_session() as session:
+                session.add(Document(job_id=job_id, entity_id=root["entity_id"], markdown=markdown, method=method))
+                session.commit()
+            emit("agent_completed", agent="documentary", payload={"method": method})
+        except Exception as exc:
+            log.exception("documentary generation failed")
+            emit("agent_failed", agent="documentary", payload={"error": str(exc)})
+
+    async with asyncio.TaskGroup() as tg:
+        tg.create_task(_synthesis())
+        tg.create_task(_documentary())
 
     with get_session() as session:
         job = session.get(Job, job_id)

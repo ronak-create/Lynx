@@ -29,7 +29,14 @@ class Settings(BaseSettings):
 
     firecrawl_api_key: str = ""
 
-    max_concurrent_fetches: int = 8
+    # Comma-separated browser origins allowed to call the API (CORS). Defaults to local dev;
+    # set to your deployed web origin(s) in production, e.g. "https://lynx.example.com".
+    cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
+
+    # Global cap on simultaneous outbound HTTP requests. Per-source rate limiters (app.sources.http)
+    # are the real politeness guardrail, so this can sit well above the agent count to let the
+    # ~15-agent fan-out overlap network waits instead of queueing behind a narrow semaphore.
+    max_concurrent_fetches: int = 16
 
 
 settings = Settings()

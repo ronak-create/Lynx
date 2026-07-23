@@ -9,6 +9,7 @@ Order is deliberate:
 
 This means JS-heavy sites (Stripe, Vercel, Sarvam) get read deeply even with no Firecrawl
 credits, and Firecrawl usage drops."""
+import asyncio
 import logging
 from urllib.parse import urlparse
 
@@ -46,22 +47,26 @@ async def read_markdown(url: str, links: bool = False) -> str | None:
 
 async def deep_read(url: str, max_pages: int = 5) -> str | None:
     """Firecrawl-free deep read: the homepage plus a few substantive subpaths, via Jina. Used as
-    a fallback when Firecrawl is unavailable or returned only a thin, single-page crawl."""
+    a fallback when Firecrawl is unavailable or returned only a thin, single-page crawl.
+
+    Subpaths are fetched concurrently (bounded by the shared fetch semaphore + Jina rate limiter)
+    so discovery isn't gated on a serial page-by-page crawl. The candidate window is capped just
+    above `max_pages` so a Firecrawl key isn't drained probing paths we'd never keep."""
     home = await read_markdown(url, links=True)
     parts: list[str] = []
     if home:
         parts.append(f"# PAGE: {url}\n\n{home}")
 
-    base = url.rstrip("/")
     root = f"{urlparse(url).scheme}://{urlparse(url).netloc}"
-    tried = 0
-    for path in _SUBPATHS:
-        if tried >= max_pages - 1:
+    candidates = _SUBPATHS[: max_pages + 2]  # front-loaded most-substantive paths; over-fetch ≤ 2
+    fetched = await asyncio.gather(*(read_markdown(root + path) for path in candidates))
+    accepted = 0
+    for path, md in zip(candidates, fetched):
+        if accepted >= max_pages - 1:
             break
-        md = await read_markdown(root + path)
         if md and len(md) > 400 and md not in (home or ""):
             parts.append(f"# PAGE: {root + path}\n\n{md}")
-            tried += 1
+            accepted += 1
 
     if not parts:
         return None

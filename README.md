@@ -43,6 +43,21 @@ Runs work with **no API keys at all** — you get the full dashboard, a metadata
 template documentary. Add a free LLM key (e.g. Groq) in `.env` to unlock the narrative
 history, competitor extraction, per-node analysis, and richer documentary.
 
+## Deploy (Docker)
+Build and run the whole stack with one command:
+```bash
+cp .env.example .env          # optional keys; the app also runs with none
+docker compose up --build     # API on :8000, Web on :3000
+```
+The backend's SQLite cache/DB persists in the `research-data` volume. For a real deployment,
+set two things:
+- **`NEXT_PUBLIC_API_URL`** — the API origin the browser will call (baked into the web bundle at
+  build time), e.g. `NEXT_PUBLIC_API_URL=https://api.example.com docker compose up --build web`.
+- **`CORS_ORIGINS`** — comma-separated web origin(s) the API accepts, e.g. `https://example.com`.
+
+The two images are independent, so you can also deploy them separately (any container host):
+`apps/api/Dockerfile` (uvicorn on 8000) and `apps/web/Dockerfile` (Next standalone on 3000).
+
 ### Config (per search)
 Click **Model & options** on the search page to choose:
 - **Model** — Auto (best configured provider), No LLM (template mode), or a specific provider.

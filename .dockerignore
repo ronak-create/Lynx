@@ -1,0 +1,27 @@
+# Keep build contexts small and reproducible — never ship local state or secrets into an image.
+**/node_modules
+**/.next
+**/dist
+**/build
+**/.venv
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.ruff_cache
+**/*.egg-info
+
+# local data + secrets
+data/
+*.db
+*.db-wal
+*.db-shm
+.env
+.env.local
+.env*.local
+
+# vcs / tooling / docs noise
+.git
+.github
+.claude
+**/.DS_Store
+**/*.log

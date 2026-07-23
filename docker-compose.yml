@@ -1,0 +1,38 @@
+# One-command local/self-hosted deployment: `docker compose up --build`
+#   API  → http://localhost:8000   (FastAPI + orchestrator)
+#   Web  → http://localhost:3000   (Next.js)
+#
+# Copy .env.example to .env first to supply optional LLM / Firecrawl keys. The app runs with
+# no keys at all (degraded no-LLM mode); the .env is loaded if present and skipped if absent.
+services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    ports:
+      - "8000:8000"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      # Browser origin allowed to call the API. Override for a real deployment.
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
+    volumes:
+      - research-data:/app/data
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        # Baked into the browser bundle at build time — must be reachable from the user's browser.
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  research-data:
