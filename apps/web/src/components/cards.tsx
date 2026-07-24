@@ -1,7 +1,7 @@
 "use client";
 /* One card component per research category. Each renders from the category_data payload
    the corresponding agent emitted; shimmer skeleton while pending, error note when failed. */
-import { createContext, useContext } from "react";
+import { createContext, useContext, useState } from "react";
 import {
   Buildings,
   ChartLineUp,
@@ -36,6 +36,8 @@ import {
   TelegramLogo,
   RedditLogo,
   LinkSimple,
+  Minus,
+  Plus,
   type Icon,
 } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
@@ -50,6 +52,36 @@ type Payload = Record<string, any>;
    data means "still loading" while running, but "this agent wasn't part of the run" once done. */
 const RunContext = createContext<{ running: boolean }>({ running: true });
 
+/* A minimize/expand toggle for a dashboard block — sits at the top-right of the block header. */
+function MinimizeButton({ collapsed, onClick }: { collapsed: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      aria-label={collapsed ? "Expand block" : "Minimize block"}
+      aria-expanded={!collapsed}
+      className="press -my-1 -mr-1 ml-auto rounded-md p-1 text-[var(--faint)] hover:bg-[var(--panel-2)] hover:text-[var(--text-strong)]"
+    >
+      {collapsed ? <Plus weight="bold" className="h-3.5 w-3.5" /> : <Minus weight="bold" className="h-3.5 w-3.5" />}
+    </button>
+  );
+}
+
+/* Collapses its content upward with a slow ease: the row track animates 1fr → 0fr while the
+   inner wrapper clips the overflow, so the body slides up into the header. */
+function Collapse({ open, children }: { open: boolean; children: React.ReactNode }) {
+  return (
+    <div
+      className="grid transition-[grid-template-rows] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]"
+      style={{ gridTemplateRows: open ? "1fr" : "0fr" }}
+    >
+      <div className="min-h-0 overflow-hidden">
+        {/* pt restores the header→body gap when open; it's clipped away when collapsed */}
+        <div className="pt-2.5">{children}</div>
+      </div>
+    </div>
+  );
+}
+
 function Card({
   title,
   icon: Icon,
@@ -61,17 +93,21 @@ function Card({
   children: React.ReactNode;
   wide?: boolean;
 }) {
+  const [collapsed, setCollapsed] = useState(false);
   return (
     <section
-      className={`panel rise flex flex-col gap-2.5 p-4 hover:border-[var(--border-strong)] ${
+      className={`panel rise flex flex-col p-4 hover:border-[var(--border-strong)] ${
         wide ? "md:col-span-2" : ""
       }`}
     >
-      <h3 className="flex items-center gap-2 text-[11px] font-semibold tracking-[0.14em] text-[var(--muted)] uppercase">
-        <Icon weight="duotone" className="h-4 w-4 text-[var(--accent)]" />
-        {title}
-      </h3>
-      {children}
+      <div className="flex items-center gap-2">
+        <h3 className="flex items-center gap-2 text-[11px] font-semibold tracking-[0.14em] text-[var(--muted)] uppercase">
+          <Icon weight="duotone" className="h-4 w-4 text-[var(--accent)]" />
+          {title}
+        </h3>
+        <MinimizeButton collapsed={collapsed} onClick={() => setCollapsed((c) => !c)} />
+      </div>
+      <Collapse open={!collapsed}>{children}</Collapse>
     </section>
   );
 }
@@ -204,6 +240,7 @@ function Section({ label, children }: { label: string; children: React.ReactNode
 /* Executive Summary: scorecard tiles + SWOT quadrants + merged timeline, from the synthesis
    agent. Stays hidden until it arrives (it completes last) to keep the Snapshot clean. */
 function SynthesisCard({ state }: { state?: { status: string; payload: Payload } }) {
+  const [collapsed, setCollapsed] = useState(false);
   if (state == null || state.status === "failed") return null;
   const p = state.payload;
   const swot = p.swot ?? {};
@@ -214,11 +251,16 @@ function SynthesisCard({ state }: { state?: { status: string; payload: Payload }
     { key: "threats", label: "Threats", items: swot.threats ?? [] },
   ];
   return (
-    <section className="panel rise flex flex-col gap-4 p-5">
-      <h3 className="flex items-center gap-2 text-[11px] font-semibold tracking-[0.14em] text-[var(--muted)] uppercase">
-        <Gauge weight="duotone" className="h-4 w-4 text-[var(--accent)]" />
-        Executive Summary
-      </h3>
+    <section className="panel rise flex flex-col p-5">
+      <div className="flex items-center gap-2">
+        <h3 className="flex items-center gap-2 text-[11px] font-semibold tracking-[0.14em] text-[var(--muted)] uppercase">
+          <Gauge weight="duotone" className="h-4 w-4 text-[var(--accent)]" />
+          Executive Summary
+        </h3>
+        <MinimizeButton collapsed={collapsed} onClick={() => setCollapsed((c) => !c)} />
+      </div>
+      <Collapse open={!collapsed}>
+      <div className="flex flex-col gap-4">
       {(p.scorecard ?? []).length > 0 && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {p.scorecard.map((c: Payload) => (
@@ -269,6 +311,8 @@ function SynthesisCard({ state }: { state?: { status: string; payload: Payload }
           </div>
         )}
       </div>
+      </div>
+      </Collapse>
     </section>
   );
 }
