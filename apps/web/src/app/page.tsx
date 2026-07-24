@@ -18,8 +18,6 @@ export default function SearchPage() {
   const [active, setActive] = useState(-1);
   const [starting, setStarting] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [settingsRender, setSettingsRender] = useState(false); // stays mounted through the close
-  const [settingsShown, setSettingsShown] = useState(false); // drives the open/close transition
   const { llmProvider, categories } = useSettings();
   const boxRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -43,19 +41,6 @@ export default function SearchPage() {
     document.documentElement.classList.add("no-scrollbar-page");
     return () => document.documentElement.classList.remove("no-scrollbar-page");
   }, []);
-
-  // mount the settings panel, then flip it open next frame so the collapse transition plays
-  // both ways — open on toggle-on, and a matching slow close before it unmounts.
-  useEffect(() => {
-    if (showSettings) {
-      setSettingsRender(true);
-      const r = requestAnimationFrame(() => setSettingsShown(true));
-      return () => cancelAnimationFrame(r);
-    }
-    setSettingsShown(false);
-    const t = setTimeout(() => setSettingsRender(false), 440); // ~matches the 420ms transition
-    return () => clearTimeout(t);
-  }, [showSettings]);
 
   const { data: suggestions = [] } = useQuery({
     queryKey: ["autocomplete", debounced],
@@ -184,15 +169,12 @@ export default function SearchPage() {
         </div>
       </div>
 
-      {settingsRender && (
-        <div className={`reveal-collapse w-full max-w-xl ${settingsShown ? "is-open" : ""}`}>
-          {/* clipped track: the panel unrolls straight down from the search bar's edge, and
-              rolls back up the same way on close */}
-          <div className="min-h-0 overflow-hidden">
-            <SettingsPanel />
-          </div>
+      {/* always mounted; the .is-open class drives the grid-rows reveal both ways (open + close) */}
+      <div className={`reveal-collapse w-full max-w-xl ${showSettings ? "is-open" : ""}`}>
+        <div className="min-h-0 overflow-hidden">
+          <SettingsPanel />
         </div>
-      )}
+      </div>
 
       {recent.length > 0 && (
         <div className="rise mt-14 w-full max-w-xl pb-16">
