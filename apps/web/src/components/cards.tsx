@@ -48,6 +48,16 @@ import { Sparkline } from "./Sparkline";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Payload = Record<string, any>;
 
+/* The founded date arrives as an ISO-ish string ("1975-04-04", or Wikidata year-precision
+   "2010-00-00"). Show a full date as DD/MM/YYYY (with a format note); fall back to whatever
+   partial precision we have (e.g. a bare year) without one. */
+function formatFounded(value: string): { display: string; dmy: boolean } {
+  const cleaned = value.replace(/(-00)+$/, ""); // '2010-00-00' -> '2010'
+  const m = cleaned.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (m) return { display: `${m[3]}/${m[2]}/${m[1]}`, dmy: true };
+  return { display: cleaned, dmy: false };
+}
+
 /* Whether the run is still in progress. Drives the empty-vs-skeleton decision: a card with no
    data means "still loading" while running, but "this agent wasn't part of the run" once done. */
 const RunContext = createContext<{ running: boolean }>({ running: true });
@@ -265,13 +275,22 @@ function SynthesisCard({ state }: { state?: { status: string; payload: Payload }
       <div className="flex flex-col gap-4">
       {(p.scorecard ?? []).length > 0 && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {p.scorecard.map((c: Payload) => (
-            <div key={c.label} className="rounded-xl border border-[var(--border)] bg-[var(--panel-2)] px-3 py-2.5">
-              <div className="text-[10px] tracking-wide text-[var(--muted)] uppercase">{c.label}</div>
-              <div className="font-mono text-lg font-semibold text-[var(--text-strong)]">{c.value}</div>
-              {c.sub && <div className="text-[10px] text-[var(--muted)]">{c.sub}</div>}
-            </div>
-          ))}
+          {p.scorecard.map((c: Payload) => {
+            const founded =
+              String(c.label).toLowerCase() === "founded" ? formatFounded(String(c.value)) : null;
+            return (
+              <div key={c.label} className="rounded-xl border border-[var(--border)] bg-[var(--panel-2)] px-3 py-2.5">
+                <div className="text-[10px] tracking-wide text-[var(--muted)] uppercase">{c.label}</div>
+                <div className="font-mono text-lg font-semibold text-[var(--text-strong)]">
+                  {founded ? founded.display : c.value}
+                </div>
+                {founded?.dmy && (
+                  <div className="text-[9px] tracking-[0.14em] text-[var(--faint)] uppercase">DD/MM/YYYY</div>
+                )}
+                {c.sub && <div className="text-[10px] text-[var(--muted)]">{c.sub}</div>}
+              </div>
+            );
+          })}
         </div>
       )}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
