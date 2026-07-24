@@ -71,7 +71,7 @@ function MinimizeButton({ collapsed, onClick }: { collapsed: boolean; onClick: (
 function Collapse({ open, children }: { open: boolean; children: React.ReactNode }) {
   return (
     <div
-      className="grid transition-[grid-template-rows] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]"
+      className="grid transition-[grid-template-rows] duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]"
       style={{ gridTemplateRows: open ? "1fr" : "0fr" }}
     >
       <div className="min-h-0 overflow-hidden">
@@ -232,7 +232,9 @@ function Section({ label, children }: { label: string; children: React.ReactNode
       <h2 className="mb-3 text-[11px] font-semibold tracking-[0.14em] text-[var(--muted)] uppercase">
         {label}
       </h2>
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">{children}</div>
+      {/* items-start so a minimized card shrinks to its header instead of stretching to
+          match a taller, expanded neighbour in the same row */}
+      <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2 xl:grid-cols-3">{children}</div>
     </section>
   );
 }

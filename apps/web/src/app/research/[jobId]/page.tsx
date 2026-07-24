@@ -45,7 +45,7 @@ export default function ResearchPage() {
   return (
     <main className="flex h-screen flex-col overflow-hidden px-5 py-4">
       <header className="mb-4 flex items-center gap-4">
-        <Link href="/" className="press wordmark text-lg font-bold">
+        <Link href="/" className="press wordmark text-2xl font-bold">
           Lynx<span>.</span>
         </Link>
         <nav className="glass-bar mx-auto flex gap-0.5 rounded-xl border p-1">
