@@ -29,8 +29,10 @@ function CompareInner() {
     enabled: selected.length >= 2,
   });
 
+  const MAX = 3;
   function toggle(jobId: string) {
     setSelected((cur) => {
+      if (!cur.includes(jobId) && cur.length >= MAX) return cur; // cap at 3
       const next = cur.includes(jobId) ? cur.filter((j) => j !== jobId) : [...cur, jobId];
       const qs = next.length ? `?jobs=${next.join(",")}` : "";
       window.history.replaceState(null, "", `/compare${qs}`);
@@ -57,20 +59,23 @@ function CompareInner() {
         {/* run picker */}
         <aside className="w-64 shrink-0">
           <p className="mb-2 text-[11px] font-semibold tracking-[0.14em] text-[var(--muted)] uppercase">
-            Pick runs ({selected.length})
+            Pick runs ({selected.length}/{MAX})
           </p>
           <div className="flex flex-col gap-1">
             {completed.map((r) => {
               const on = selected.includes(r.job_id);
+              const atMax = !on && selected.length >= MAX;
               return (
                 <button
                   key={r.job_id}
                   onClick={() => toggle(r.job_id)}
+                  disabled={atMax}
+                  title={atMax ? `Compare up to ${MAX} runs — deselect one first` : undefined}
                   className={`press flex items-center gap-2 rounded-lg border px-3 py-2 text-left text-[13px] ${
                     on
                       ? "border-[var(--accent-line)] bg-[var(--accent-soft)] text-[var(--text-strong)]"
                       : "border-[var(--border)] bg-[var(--panel)] text-[var(--text)] hover:border-[var(--border-strong)]"
-                  }`}
+                  } ${atMax ? "cursor-not-allowed opacity-40 hover:border-[var(--border)]" : ""}`}
                 >
                   {on ? (
                     <CheckCircle weight="fill" className="h-4 w-4 shrink-0 text-[var(--accent)]" />
@@ -103,10 +108,10 @@ function CompareInner() {
               <span className="spinner h-5 w-5" />
             </div>
           ) : cmp.data ? (
-            <table className="w-full border-collapse text-sm">
+            <table className="w-full table-fixed border-collapse text-sm">
               <thead>
                 <tr>
-                  <th className="sticky left-0 bg-[var(--bg)] p-2 text-left" />
+                  <th className="sticky left-0 w-40 bg-[var(--bg)] p-2 text-left" />
                   {cmp.data.entities.map((e) => (
                     <th key={e.job_id} className="p-2 text-left align-bottom">
                       <Link
@@ -129,7 +134,7 @@ function CompareInner() {
                     {m.cells.map((c, i) => (
                       <td
                         key={i}
-                        className={`p-2 ${
+                        className={`p-2 align-top break-words ${
                           m.best === i
                             ? "rounded-md bg-[var(--accent-soft)] font-semibold text-[var(--accent)]"
                             : "text-[var(--text)]"
