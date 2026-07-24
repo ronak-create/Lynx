@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { MagnifyingGlass, SlidersHorizontal, ArrowRight, ClockCounterClockwise, Scales } from "@phosphor-icons/react";
-import { api, Suggestion } from "@/lib/api";
+import { api } from "@/lib/api";
 import { useSettings } from "@/stores/settings";
 import { SettingsPanel } from "@/components/SettingsPanel";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -14,12 +14,10 @@ export default function SearchPage() {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [debounced, setDebounced] = useState("");
-  const [open, setOpen] = useState(false);
-  const [active, setActive] = useState(-1);
+  const [ghostIdx, setGhostIdx] = useState(0); // which prefix suggestion the ghost text shows
   const [starting, setStarting] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const { llmProvider, categories } = useSettings();
-  const boxRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const swarmRef = useRef<SwarmHandle>(null);
 
@@ -48,13 +46,17 @@ export default function SearchPage() {
     enabled: debounced.length >= 2 && !debounced.startsWith("http"),
   });
 
-  useEffect(() => {
-    const onClick = (e: MouseEvent) => {
-      if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
-  }, []);
+  // inline ghost-text autocomplete (→ accepts, ↑/↓ switch suggestions) instead of a dropdown.
+  // only prefix matches can be completed inline; ↑/↓ cycle through those candidates.
+  const candidates =
+    query.trim().length >= 2
+      ? suggestions.filter(
+          (s) => s.name.toLowerCase().startsWith(query.toLowerCase()) && s.name.length > query.length,
+        )
+      : [];
+  const gi = candidates.length ? Math.min(ghostIdx, candidates.length - 1) : 0;
+  const top = candidates[gi]?.name;
+  const ghost = top ? top.slice(query.length) : "";
 
   const start = async (q: string) => {
     if (!q.trim() || starting) return;
@@ -94,7 +96,7 @@ export default function SearchPage() {
         </p>
       </div>
 
-      <div ref={boxRef} className="rise relative mt-8 w-full max-w-xl">
+      <div className="rise relative mt-8 w-full max-w-xl">
         <div className="relative">
           <MagnifyingGlass
             weight="bold"
@@ -107,21 +109,44 @@ export default function SearchPage() {
             onFocus={pulseFromSearch}
             onChange={(e) => {
               setQuery(e.target.value);
-              setOpen(true);
-              setActive(-1);
+              setGhostIdx(0);
             }}
             onKeyDown={(e) => {
-              if (e.key === "ArrowDown") setActive((a) => Math.min(a + 1, suggestions.length - 1));
-              else if (e.key === "ArrowUp") setActive((a) => Math.max(a - 1, -1));
-              else if (e.key === "Enter") {
-                const sel: Suggestion | undefined = active >= 0 ? suggestions[active] : undefined;
-                start(sel ? sel.name : query);
-              } else if (e.key === "Escape") setOpen(false);
+              if (e.key === "Enter") start(top ?? query);
+              // ↑/↓ switch which suggestion the ghost text shows
+              else if (e.key === "ArrowDown" && candidates.length) {
+                e.preventDefault();
+                setGhostIdx((i) => Math.min(i + 1, candidates.length - 1));
+              } else if (e.key === "ArrowUp" && candidates.length) {
+                e.preventDefault();
+                setGhostIdx((i) => Math.max(i - 1, 0));
+              }
+              // → accepts the ghost completion, but only when the caret is at the end
+              else if (e.key === "ArrowRight" && ghost && e.currentTarget.selectionStart === query.length) {
+                e.preventDefault();
+                setQuery(top!);
+                setGhostIdx(0);
+              }
             }}
             placeholder='Try "Microsoft", "Anthropic", or https://figma.com'
             className="panel w-full py-4 pr-14 pl-12 text-[15px] text-[var(--text)] outline-none placeholder:text-[var(--faint)] focus:border-[var(--accent-line)]"
             disabled={starting}
           />
+          {/* inline ghost text: the invisible query span pushes the grey completion to the caret */}
+          {ghost && !starting && (
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 flex items-center overflow-hidden py-4 pr-14 pl-12 text-[15px] whitespace-pre"
+            >
+              <span className="invisible">{query}</span>
+              <span className="text-[var(--faint)]">
+                {ghost}
+                <span className="ml-2 rounded border border-[var(--border)] px-1 py-0.5 align-middle font-mono text-[9px] tracking-wide text-[var(--faint)]">
+                  →
+                </span>
+              </span>
+            </div>
+          )}
           <button
             onClick={() => start(query)}
             disabled={!query.trim() || starting}
@@ -131,26 +156,6 @@ export default function SearchPage() {
             {starting ? <span className="spinner h-4 w-4 border-white/40 border-t-white" /> : <ArrowRight weight="bold" className="h-[18px] w-[18px]" />}
           </button>
         </div>
-
-        {open && suggestions.length > 0 && (
-          <ul className="panel pop-top absolute z-10 mt-2 w-full overflow-hidden p-1 shadow-[var(--shadow-pop)]">
-            {suggestions.map((s, i) => (
-              <li
-                key={`${s.name}-${s.kind}`}
-                onMouseEnter={() => setActive(i)}
-                onMouseDown={() => start(s.name)}
-                className={`flex cursor-pointer items-center justify-between rounded-lg px-3.5 py-2.5 text-sm ${
-                  i === active ? "bg-[var(--panel-2)] text-[var(--text-strong)]" : "text-[var(--text)]"
-                }`}
-              >
-                <span>{s.name}</span>
-                <span className="font-mono text-xs text-[var(--faint)]">
-                  {s.ticker ? `$${s.ticker}` : s.kind === "wikipedia" ? "wiki" : ""}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
 
         {starting && (
           <p className="mt-3 flex items-center justify-center gap-2 text-sm text-[var(--muted)]">
