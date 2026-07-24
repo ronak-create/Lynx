@@ -118,7 +118,30 @@ export default function ResearchPage() {
                 </button>
               </div>
             ) : (
-              <DashboardGrid categories={state.categories} running={running} />
+              <>
+                {/* sticky company-name block — always visible above the Executive Summary,
+                    stays pinned while the dashboard scrolls; not collapsible. Heavy
+                    "liquid glass" so the cards scrolling behind melt into a soft frost. */}
+                <div
+                  className="sticky top-0 z-20 mb-5 flex items-center justify-center gap-3 rounded-2xl border border-[var(--glass-border)] px-5 py-3.5 text-center"
+                  style={{
+                    background: "var(--glass-sheen), var(--glass-bg)",
+                    backdropFilter: "blur(30px) saturate(1.9)",
+                    WebkitBackdropFilter: "blur(30px) saturate(1.9)",
+                    boxShadow: "var(--glass-shadow), inset 0 1px 0 var(--glass-highlight)",
+                  }}
+                >
+                  <h1 className="truncate text-xl font-semibold text-[var(--text-strong)]">
+                    {state.entity?.name ?? "Resolving…"}
+                  </h1>
+                  {state.entity?.ticker && (
+                    <span className="rounded-md border border-[var(--glass-border)] bg-[var(--panel-2)]/60 px-2 py-0.5 font-mono text-xs text-[var(--muted)]">
+                      ${state.entity.ticker}
+                    </span>
+                  )}
+                </div>
+                <DashboardGrid categories={state.categories} running={running} />
+              </>
             ))}
           {tab === "Graph" && <GraphView jobId={jobId} />}
           {tab === "Documentary" && <DocumentaryView jobId={jobId} running={running} />}
