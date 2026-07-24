@@ -38,6 +38,7 @@ export function GraphView({ jobId }: { jobId: string }) {
   const [size, setSize] = useState({ w: 800, h: 600 });
   const [FG, setFG] = useState<any>(null);
   const [pal, setPal] = useState<Palette | null>(null);
+  const [showEdgeLabels, setShowEdgeLabels] = useState(true);
 
   // read themed colours from CSS variables, and refresh when the theme changes
   useEffect(() => {
@@ -140,6 +141,7 @@ export function GraphView({ jobId }: { jobId: string }) {
   // draw the relationship type as a small label running along each edge (like the reference)
   const paintLink = useCallback(
     (link: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
+      if (!showEdgeLabels) return;
       if (globalScale < 0.55) return; // too small to read when zoomed far out
       const s = link.source;
       const t = link.target;
@@ -166,13 +168,30 @@ export function GraphView({ jobId }: { jobId: string }) {
       ctx.restore();
       ctx.globalAlpha = 1;
     },
-    [hoveredEntityId, selectedEntityId, pal],
+    [hoveredEntityId, selectedEntityId, pal, showEdgeLabels],
   );
 
   return (
     <div ref={containerRef} className="panel relative h-full min-h-0 w-full overflow-hidden">
       {/* dotted-grid backdrop; the force-graph canvas renders transparently on top */}
       <div className="graph-dots pointer-events-none absolute inset-0" />
+      {data && (
+        <button
+          onClick={() => setShowEdgeLabels((v) => !v)}
+          className="absolute top-3 right-3 z-10 flex items-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--panel)]/85 px-2 py-1 text-[11px] text-[var(--muted)] backdrop-blur-sm hover:text-[var(--text-strong)]"
+        >
+          <span
+            className={`flex h-3 w-3 items-center justify-center rounded-[3px] border text-[8px] font-bold ${
+              showEdgeLabels
+                ? "border-[var(--accent)] bg-[var(--accent)] text-white"
+                : "border-[var(--border-strong)] text-transparent"
+            }`}
+          >
+            ✓
+          </span>
+          Edge labels
+        </button>
+      )}
       {data && (
         <div className="absolute top-3 left-3 z-10 flex flex-wrap gap-1.5 text-[11px]">
           {Object.entries(NODE_COLORS)
@@ -226,6 +245,9 @@ export function GraphView({ jobId }: { jobId: string }) {
             // pin the node where it's dropped so it stays put; edges stay connected
             node.fx = node.x;
             node.fy = node.y;
+            // a click often registers as a tiny drag; select on drag-end too so clicking a
+            // different node while the panel is open always updates the selection
+            setSelected(node.id);
           }}
           cooldownTicks={140}
           d3VelocityDecay={0.28}

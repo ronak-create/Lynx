@@ -179,7 +179,7 @@ export default function ResearchPage() {
             >
               <div className="h-10 w-1 rounded-full bg-[var(--border)] transition-colors group-hover:bg-[var(--accent-line)]" />
             </div>
-            <NodePanel width={panelWidth} />
+            <NodePanel key={selectedEntityId} width={panelWidth} />
           </>
         )}
       </div>
