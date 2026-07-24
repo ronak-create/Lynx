@@ -9,6 +9,7 @@ import remarkGfm from "remark-gfm";
 import { api } from "@/lib/api";
 import { useHighlight } from "@/stores/highlight";
 import { DocChat } from "./DocChat";
+import { MediaPreview } from "./MediaPreview";
 
 const WIKI_LINK = /\[\[([^\]|]+)\|entity:([0-9a-f-]{36})\]\]/g;
 
@@ -56,6 +57,10 @@ export function DocumentaryView({ jobId, running }: { jobId: string; running: bo
           remarkPlugins={[remarkGfm]}
           urlTransform={(url) => url /* preserve entity: scheme; content is backend-generated */}
           components={{
+            img: ({ src, alt }) =>
+              typeof src === "string" ? (
+                <MediaPreview src={src} alt={alt ?? ""} className="mx-auto my-5 max-h-72 w-auto object-contain p-2" />
+              ) : null,
             a: ({ href, children }) => {
               if (href?.startsWith("entity:")) {
                 const id = href.slice(7);

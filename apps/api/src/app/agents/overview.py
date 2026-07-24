@@ -36,6 +36,7 @@ async def run(ctx: AgentContext) -> dict:
         "description": root.get("description"),
         "summary": _summary_text(root),
         "wikipedia_url": root.get("url"),
+        "image_url": root.get("image_url"),
         "facts": fact_dicts,
         "subsidiaries": related.get("subsidiaries", []),
         "parent": related.get("parent", []),

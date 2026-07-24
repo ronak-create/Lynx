@@ -108,6 +108,7 @@ async def resolve_query(query: str) -> dict:
     description = None
     summary_text = None
     wiki_url = None
+    image_url = None
     hits = await wikipedia.opensearch(name, limit=1)
     s = await wikipedia.summary(hits[0]["title"]) if hits else None
 
@@ -140,6 +141,7 @@ async def resolve_query(query: str) -> dict:
         description = s["description"]
         summary_text = s["extract"]
         wiki_url = s["url"]
+        image_url = s.get("thumbnail_url")
         name = s["title"]
     elif sec:
         # no clean Wikipedia article, but we know the company from SEC — use its proper name
@@ -165,6 +167,7 @@ async def resolve_query(query: str) -> dict:
                 "domain": domain,
                 "description": description,
                 "wikipedia_url": wiki_url,
+                "image_url": image_url,
                 "is_root": True,
             },
             summary=summary_text,
@@ -189,4 +192,5 @@ async def resolve_query(query: str) -> dict:
         "domain": domain,
         "description": description,
         "url": wiki_url,
+        "image_url": image_url,
     }

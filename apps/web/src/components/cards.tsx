@@ -44,6 +44,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api, fmtMoney } from "@/lib/api";
 import { JobLiveState } from "@/hooks/useJobEvents";
 import { Sparkline } from "./Sparkline";
+import { MediaPreview } from "./MediaPreview";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Payload = Record<string, any>;
@@ -404,6 +405,14 @@ export function DashboardGrid({
         wide
         render={(p) => (
           <div className="flex flex-col gap-2.5 text-sm">
+            {p.image_url && (
+              <MediaPreview
+                src={p.image_url}
+                alt={p.name}
+                kind="image"
+                className="float-right mb-1 ml-3 h-24 w-24 object-contain p-1"
+              />
+            )}
             {p.summary && (
               <p className="leading-relaxed text-[var(--text)]">{String(p.summary).slice(0, 480)}…</p>
             )}

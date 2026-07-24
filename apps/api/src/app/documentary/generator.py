@@ -232,6 +232,8 @@ async def generate_documentary(
     name = root["name"]
 
     sections = [f"# {name}: A Research Documentary"]
+    if root.get("image_url"):
+        sections.append(f"![{name}]({root['image_url']})")
     # subtitle tagline — but not when the "What They Do" section already covers it
     prof_what = (results.get("profile", {}) or {}).get("what_they_do") or ""
     desc = root.get("description") or ""
