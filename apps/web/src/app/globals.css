@@ -34,6 +34,7 @@
   --text-strong: #ffffff;
   --muted: #bcc3da;
   --faint: #838cab;
+  --graph-dot: rgba(160, 170, 205, 0.17);
   --accent: #9d7bff;
   --accent-bright: #b79bff;
   --accent-soft: rgba(157, 123, 255, 0.16);
@@ -78,6 +79,7 @@
   --text-strong: #0c0e14;
   --muted: #626a80;
   --faint: #9aa0b3;
+  --graph-dot: rgba(80, 90, 120, 0.18);
   --accent: #6d3ff2;
   --accent-bright: #7c4dff;
   --accent-soft: rgba(109, 63, 242, 0.1);
@@ -372,6 +374,14 @@ svg * {
   from { opacity: 0; transform: translateX(14px); }
   to { opacity: 1; transform: translateX(0); }
 }
+/* knowledge-graph dotted-grid backdrop (React-Flow style), theme-aware */
+.graph-dots {
+  background-color: var(--bg);
+  background-image: radial-gradient(var(--graph-dot) 1.2px, transparent 1.4px);
+  background-size: 24px 24px;
+  background-position: -12px -12px;
+}
+
 /* landing page: keep it scrollable but hide the scrollbar chrome */
 html.no-scrollbar-page {
   scrollbar-width: none; /* Firefox */

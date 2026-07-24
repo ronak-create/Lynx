@@ -137,8 +137,42 @@ export function GraphView({ jobId }: { jobId: string }) {
     [hoveredEntityId, selectedEntityId, neighborIds, pal],
   );
 
+  // draw the relationship type as a small label running along each edge (like the reference)
+  const paintLink = useCallback(
+    (link: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
+      if (globalScale < 0.55) return; // too small to read when zoomed far out
+      const s = link.source;
+      const t = link.target;
+      if (typeof s !== "object" || typeof t !== "object") return;
+      const label = String(link.type ?? "").trim();
+      if (!label) return;
+      const focus = hoveredEntityId ?? selectedEntityId;
+      const isFocus = !!focus && (s.id === focus || t.id === focus);
+      const mx = (s.x + t.x) / 2;
+      const my = (s.y + t.y) / 2;
+      const fontSize = Math.max(7.5 / globalScale, 1.5);
+      let a = Math.atan2(t.y - s.y, t.x - s.x);
+      if (a > Math.PI / 2) a -= Math.PI; // keep text upright
+      if (a < -Math.PI / 2) a += Math.PI;
+      ctx.save();
+      ctx.translate(mx, my);
+      ctx.rotate(a);
+      ctx.font = `${fontSize}px Sans-Serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.globalAlpha = isFocus ? 0.95 : focus ? 0.12 : 0.5;
+      ctx.fillStyle = isFocus ? pal?.accent ?? "#9d7bff" : pal?.text ?? "#aab2c8";
+      ctx.fillText(label, 0, -fontSize * 0.6);
+      ctx.restore();
+      ctx.globalAlpha = 1;
+    },
+    [hoveredEntityId, selectedEntityId, pal],
+  );
+
   return (
     <div ref={containerRef} className="panel relative h-full min-h-0 w-full overflow-hidden">
+      {/* dotted-grid backdrop; the force-graph canvas renders transparently on top */}
+      <div className="graph-dots pointer-events-none absolute inset-0" />
       {data && (
         <div className="absolute top-3 left-3 z-10 flex flex-wrap gap-1.5 text-[11px]">
           {Object.entries(NODE_COLORS)
@@ -165,9 +199,11 @@ export function GraphView({ jobId }: { jobId: string }) {
           width={size.w}
           height={size.h}
           graphData={graphData}
-          backgroundColor={pal?.bg ?? "#090a0f"}
+          backgroundColor="rgba(0,0,0,0)"
           onEngineStop={() => fgRef.current?.zoomToFit?.(400, 60)}
           nodeCanvasObject={paintNode}
+          linkCanvasObjectMode={() => "after"}
+          linkCanvasObject={paintLink}
           nodePointerAreaPaint={(node: any, color: string, ctx: CanvasRenderingContext2D) => {
             ctx.beginPath();
             ctx.arc(node.x, node.y, 10, 0, 2 * Math.PI);
@@ -185,7 +221,12 @@ export function GraphView({ jobId }: { jobId: string }) {
           onNodeClick={(node: any) => setSelected(node.id)}
           onNodeHover={(node: any) => setHovered(node ? node.id : null)}
           onBackgroundClick={() => setSelected(null)}
-          enableNodeDrag={false}
+          enableNodeDrag={true}
+          onNodeDragEnd={(node: any) => {
+            // pin the node where it's dropped so it stays put; edges stay connected
+            node.fx = node.x;
+            node.fy = node.y;
+          }}
           cooldownTicks={140}
           d3VelocityDecay={0.28}
         />
