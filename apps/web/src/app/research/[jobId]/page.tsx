@@ -48,17 +48,6 @@ export default function ResearchPage() {
         <Link href="/" className="press wordmark text-lg font-bold">
           Lynx<span>.</span>
         </Link>
-        <div className="min-w-0">
-          <h1 className="truncate text-[17px] font-semibold text-[var(--text-strong)]">
-            {state.entity?.name ?? "Resolving…"}
-            {state.entity?.ticker && (
-              <span className="ml-2 text-xs font-normal text-[var(--muted)]">${state.entity.ticker}</span>
-            )}
-          </h1>
-          {state.entity?.description && (
-            <p className="truncate text-xs text-[var(--muted)]">{state.entity.description}</p>
-          )}
-        </div>
         <nav className="glass-bar mx-auto flex gap-0.5 rounded-xl border p-1">
           {TABS.map((t) => (
             <button

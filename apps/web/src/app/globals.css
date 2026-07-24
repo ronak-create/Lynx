@@ -1,5 +1,15 @@
 @import "tailwindcss";
 
+/* ---- Brunson: the LYNX wordmark display face (self-hosted) ----
+   Licensed file lives at apps/web/public/fonts/Brunson.ttf. */
+@font-face {
+  font-family: "Brunson";
+  src: url("/fonts/Brunson.ttf") format("truetype");
+  font-weight: 400 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* ============================================================
    Lynx design tokens — vivid accents on a deep base (dark) and a
    crisp off-white base (light). One accent (electric violet).
@@ -22,8 +32,8 @@
   --border-strong: #333b56;
   --text: #eef0f8;
   --text-strong: #ffffff;
-  --muted: #a2aac2;
-  --faint: #6a7290;
+  --muted: #bcc3da;
+  --faint: #838cab;
   --accent: #9d7bff;
   --accent-bright: #b79bff;
   --accent-soft: rgba(157, 123, 255, 0.16);
@@ -263,6 +273,9 @@ svg * {
 
 /* ---- premium accents: gradient wordmark + primary CTA ---- */
 .wordmark {
+  font-family: "Brunson", var(--font-geist-sans), sans-serif;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
   background: var(--hero-accent);
   -webkit-background-clip: text;
   background-clip: text;
@@ -358,6 +371,29 @@ svg * {
 @keyframes pop-right {
   from { opacity: 0; transform: translateX(14px); }
   to { opacity: 1; transform: translateX(0); }
+}
+/* landing page: keep it scrollable but hide the scrollbar chrome */
+html.no-scrollbar-page {
+  scrollbar-width: none; /* Firefox */
+}
+html.no-scrollbar-page::-webkit-scrollbar {
+  display: none; /* Chromium / WebKit */
+}
+
+/* straight vertical reveal — the child track transitions 0fr↔1fr, so the panel unrolls
+   downward from the edge above it (and rolls back up the same way on close), pushing the
+   content below it smoothly in both directions. */
+.reveal-collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows 420ms var(--ease-out-quint),
+    opacity 420ms var(--ease-out-quint);
+}
+.reveal-collapse.is-open {
+  grid-template-rows: 1fr;
+  opacity: 1;
 }
 .rise {
   animation: rise 320ms var(--ease-out-quint) both;

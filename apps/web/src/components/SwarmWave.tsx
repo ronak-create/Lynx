@@ -15,7 +15,9 @@ const BASE_ALPHA = 0.5; // resting opacity — most of the field sits here (dens
 // lit-wave shading (test alternative to size-scaling): every dot is the SAME size; as a wave
 // sweeps across it, it shades white (leading face, catching the light) → theme colour (crest) →
 // black (trailing face, in shadow), as if lit from the front of the travelling wave.
-const DOT_R = 1.8; // uniform dot radius — no per-particle size variance
+const DOT_R = 1.8; // dot radius at the wave crest (full energy)
+const REST_SCALE = 0.78; // resting dots sit a little smaller so the wave stands out
+const REST_ALPHA_MUL = 0.82; // …and a little more transparent when no wave is on them
 const HIGHLIGHT: [number, number, number] = [255, 255, 255]; // lit / leading face
 const SHADOW: [number, number, number] = [3, 4, 10]; // shadowed / trailing face (sinks into the bg)
 const LIGHT_DIR = 1; // set to -1 if the lit and shadow sides come out reversed
@@ -34,8 +36,11 @@ const PULSE_LIFE = 1.7; // s until it fades out
 const PULSE_WIDTH = 60; // ring thickness
 const PULSE_DISP = 15; // px outward shove at the ring
 // pointer
-const POINTER_R = 120; // influence radius
+const POINTER_R = 165; // influence radius (wider halo around the cursor)
 const POINTER_PUSH = 24; // px repulsion at the pointer
+const POINTER_EASE = 0.085; // how fast the halo catches up to the cursor — lower = more trailing lag
+const REFLECT_R = 230; // radius around the cursor where waves appear to bounce off it
+const REFLECT_GAIN = 1.2; // strength of the reflected wavelet vs the incident wave
 
 type Particle = { hx: number; hy: number; r: number; seed: number };
 type Pulse = { x: number; y: number; t: number };
@@ -114,7 +119,9 @@ const SwarmWave = forwardRef<SwarmHandle, { className?: string }>(function Swarm
     let particles: Particle[] = [];
     let colTheme: [number, number, number] = [157, 123, 255]; // the accent — the crest / mid-tone
     const waves: Wave[] = [];
-    const pointer = { x: -9999, y: -9999, active: false };
+    // x/y is the *smoothed* halo position that eases toward the raw cursor (tx/ty),
+    // so the ripple trails a little behind the mouse instead of snapping to it.
+    const pointer = { x: -9999, y: -9999, tx: -9999, ty: -9999, active: false };
 
     const readColors = () => {
       const cs = getComputedStyle(document.documentElement);
@@ -161,6 +168,12 @@ const SwarmWave = forwardRef<SwarmHandle, { className?: string }>(function Swarm
       }
       pulses.current = pulses.current.filter((p) => (now - p.t) / 1000 < PULSE_LIFE);
 
+      // ease the halo toward the real cursor so the ripple lags a touch behind the mouse
+      if (pointer.active) {
+        pointer.x += (pointer.tx - pointer.x) * POINTER_EASE;
+        pointer.y += (pointer.ty - pointer.y) * POINTER_EASE;
+      }
+
       for (const p of particles) {
         let x = p.hx;
         let y = p.hy;
@@ -174,6 +187,18 @@ const SwarmWave = forwardRef<SwarmHandle, { className?: string }>(function Swarm
         if (!reduce) {
           x += DRIFT * Math.sin(p.hy * 0.012 + t * 0.3 + p.seed);
           y += DRIFT * Math.cos(p.hx * 0.012 + t * 0.24 + p.seed);
+
+          // how strongly this dot feels the cursor as a reflector (0 far away → 1 at the cursor)
+          let refl = 0;
+          if (pointer.active) {
+            const rdx = p.hx - pointer.x;
+            const rdy = p.hy - pointer.y;
+            const rd2 = rdx * rdx + rdy * rdy;
+            if (rd2 < REFLECT_R * REFLECT_R) {
+              const f = 1 - Math.sqrt(rd2) / REFLECT_R;
+              refl = f * f; // eased falloff
+            }
+          }
 
           // each independent wave contributes brightness + a nudge along its own direction
           for (const w of waves) {
@@ -191,6 +216,22 @@ const SwarmWave = forwardRef<SwarmHandle, { className?: string }>(function Swarm
               y += we * WAVE_DISP * w.sin;
               litNum += we * Math.cos(phase) * LIGHT_DIR; // front-lit / back-shadowed
               litDen += we;
+            }
+
+            // reflected wavelet: mirror the wave's source through the cursor so, near the
+            // pointer, the wave looks like it bounces straight back the way it came.
+            if (refl > 0) {
+              const mProj = (2 * pointer.x - p.hx) * w.cos + (2 * pointer.y - p.hy) * w.sin;
+              const phaseR = mProj * w.freq - age * w.speed;
+              const bandR = Math.max(0, Math.sin(phaseR));
+              const weR = w.amp * env * bandR ** WAVE_SHARP * refl * REFLECT_GAIN;
+              if (weR > 0.01) {
+                e += weR;
+                x -= weR * WAVE_DISP * w.cos; // travels opposite to the incident wave
+                y -= weR * WAVE_DISP * w.sin;
+                litNum += weR * Math.cos(phaseR) * LIGHT_DIR;
+                litDen += weR;
+              }
             }
           }
         }
@@ -238,10 +279,12 @@ const SwarmWave = forwardRef<SwarmHandle, { className?: string }>(function Swarm
         const cg = Math.round(colTheme[1] + (target[1] - colTheme[1]) * k);
         const cb = Math.round(colTheme[2] + (target[2] - colTheme[2]) * k);
         // the crest (bright band) is more opaque; shadow side eases off so it recedes
-        const alpha = BASE_ALPHA + e * 0.5 * (m >= 0 ? 1 : 0.3);
+        const alpha = BASE_ALPHA * REST_ALPHA_MUL + e * (0.5 + BASE_ALPHA * (1 - REST_ALPHA_MUL)) * (m >= 0 ? 1 : 0.3);
+        // resting dots are a touch smaller; they grow to full DOT_R as the wave energy rises
+        const radius = DOT_R * (REST_SCALE + (1 - REST_SCALE) * e);
         ctx.fillStyle = `rgba(${cr},${cg},${cb},${alpha})`;
         ctx.beginPath();
-        ctx.arc(x, y, DOT_R, 0, Math.PI * 2);
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
         ctx.fill();
       }
     };
@@ -259,8 +302,13 @@ const SwarmWave = forwardRef<SwarmHandle, { className?: string }>(function Swarm
       canvas.style.opacity = String(fade);
     };
     const onMove = (e: PointerEvent) => {
-      pointer.x = e.clientX;
-      pointer.y = e.clientY;
+      pointer.tx = e.clientX;
+      pointer.ty = e.clientY;
+      // first contact after leaving: snap the halo to the cursor so it doesn't sweep in from afar
+      if (!pointer.active) {
+        pointer.x = e.clientX;
+        pointer.y = e.clientY;
+      }
       pointer.active = true;
     };
     const onLeave = () => {
