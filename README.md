@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="apps/web/public/brand/lynx-logo-horizontal-white.svg">
+    <img alt="Lynx" src="apps/web/public/brand/lynx-logo-horizontal.svg" width="320">
+  </picture>
+</p>
+
 # Lynx — Business Research Platform
 
 *Named for the lynx — proverbially sharp-sighted; the tool's whole job is to see everything about a business at a glance.*
