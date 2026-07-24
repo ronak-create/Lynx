@@ -45,7 +45,7 @@ export default function ResearchPage() {
   return (
     <main className="flex h-screen flex-col overflow-hidden px-5 py-4">
       <header className="mb-4 flex items-center gap-4">
-        <Link href="/" className="press wordmark text-2xl font-bold">
+        <Link href="/" className="press wordmark ml-2 text-2xl font-bold">
           Lynx<span>.</span>
         </Link>
         <nav className="glass-bar mx-auto flex gap-0.5 rounded-xl border p-1">
@@ -123,7 +123,7 @@ export default function ResearchPage() {
                     stays pinned while the dashboard scrolls; not collapsible. Heavy
                     "liquid glass" so the cards scrolling behind melt into a soft frost. */}
                 <div
-                  className="sticky top-0 z-20 mb-5 flex items-center justify-center gap-3 rounded-2xl border border-[var(--glass-border)] px-5 py-3.5 text-center"
+                  className="sticky top-0 z-20 mb-5 flex items-center justify-center gap-3 rounded-t-2xl border border-[var(--glass-border)] px-5 py-3.5 text-center"
                   style={{
                     background: "var(--glass-sheen), var(--glass-bg)",
                     backdropFilter: "blur(30px) saturate(1.9)",
