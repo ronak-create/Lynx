@@ -6,7 +6,7 @@ import { X, Sparkle, ArrowSquareOut, ArrowRight, ArrowLeft } from "@phosphor-ico
 import { api, NODE_COLORS } from "@/lib/api";
 import { useHighlight } from "@/stores/highlight";
 
-export function NodePanel() {
+export function NodePanel({ width }: { width?: number }) {
   const { selectedEntityId, setSelected } = useHighlight();
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
@@ -38,16 +38,19 @@ export function NodePanel() {
   const shownAnalysis = analysis ?? entity?.analysis ?? null;
 
   return (
-    <aside className="panel pop-right flex w-80 shrink-0 flex-col gap-3 self-stretch overflow-y-auto p-4">
+    <aside
+      style={{ width: width ?? 320 }}
+      className="panel slide-in-right flex min-w-0 shrink-0 flex-col gap-3 self-stretch overflow-y-auto p-4"
+    >
       <div className="flex items-start justify-between gap-2">
-        <div>
+        <div className="min-w-0">
           <span
             className="mb-1.5 inline-block rounded-md px-1.5 py-0.5 text-[10px] font-medium tracking-wide uppercase"
             style={{ background: `${NODE_COLORS[entity?.type ?? ""] ?? "#94a3b8"}22`, color: NODE_COLORS[entity?.type ?? ""] ?? "#94a3b8" }}
           >
             {entity?.type ?? "…"}
           </span>
-          <h3 className="text-lg font-semibold text-[var(--text-strong)]">{entity?.name ?? "Loading…"}</h3>
+          <h3 className="text-lg font-semibold break-words text-[var(--text-strong)]">{entity?.name ?? "Loading…"}</h3>
         </div>
         <button
           onClick={() => setSelected(null)}
@@ -66,7 +69,7 @@ export function NodePanel() {
           <ul className="flex flex-col gap-1 text-[13px]">
             {entity.claims.slice(0, 12).map((c, i) => (
               <li key={i} className="flex flex-col">
-                <span>
+                <span className="break-words">
                   <span className="text-[var(--muted)]">{c.predicate.replace(/_/g, " ")}: </span>
                   {c.value?.text}
                 </span>
@@ -92,19 +95,19 @@ export function NodePanel() {
           <h4 className="mb-1 text-[11px] font-semibold tracking-wider text-[var(--muted)] uppercase">Connections</h4>
           <ul className="flex flex-col gap-1 text-[13px]">
             {entity.edges.slice(0, 14).map((e, i) => (
-              <li key={i} className="flex items-center gap-1.5">
+              <li key={i} className="flex items-start gap-1.5">
                 {e.direction === "out" ? (
-                  <ArrowRight weight="bold" className="h-3 w-3 shrink-0 text-[var(--faint)]" />
+                  <ArrowRight weight="bold" className="mt-1 h-3 w-3 shrink-0 text-[var(--faint)]" />
                 ) : (
-                  <ArrowLeft weight="bold" className="h-3 w-3 shrink-0 text-[var(--faint)]" />
+                  <ArrowLeft weight="bold" className="mt-1 h-3 w-3 shrink-0 text-[var(--faint)]" />
                 )}
-                <span className="rounded-md bg-[var(--panel-2)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--muted)]">
+                <span className="shrink-0 rounded-md bg-[var(--panel-2)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--muted)]">
                   {e.type}
                 </span>
                 {e.other && (
                   <button
                     onClick={() => setSelected(e.other!.id)}
-                    className="press truncate text-[var(--text)] hover:text-[var(--accent)]"
+                    className="press break-words text-left text-[var(--text)] hover:text-[var(--accent)]"
                   >
                     {e.other.name}
                   </button>

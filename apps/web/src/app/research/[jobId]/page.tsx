@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { CheckCircle, WarningCircle, ArrowsClockwise } from "@phosphor-icons/react";
@@ -26,6 +26,27 @@ export default function ResearchPage() {
   const [refreshing, setRefreshing] = useState(false);
   const selectedEntityId = useHighlight((s) => s.selectedEntityId);
   const running = state.jobStatus === "running" || state.jobStatus === "queued";
+
+  // resizable split between the graph/documentary content and the node panel
+  const splitRef = useRef<HTMLDivElement>(null);
+  const [panelWidth, setPanelWidth] = useState(360);
+  const startResize = (e: React.PointerEvent) => {
+    e.preventDefault();
+    const move = (ev: PointerEvent) => {
+      const rect = splitRef.current?.getBoundingClientRect();
+      if (rect) setPanelWidth(Math.max(280, Math.min(680, rect.right - ev.clientX)));
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      document.body.style.userSelect = "";
+      document.body.style.cursor = "";
+    };
+    document.body.style.userSelect = "none";
+    document.body.style.cursor = "col-resize";
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  };
   // a run that failed before any agent finished has nothing to show — render an
   // explanation + re-run instead of a grid of empty cards
   const deadRun = state.jobStatus === "failed" && Object.keys(state.categories).length === 0;
@@ -91,7 +112,7 @@ export default function ResearchPage() {
 
       {tab === "Dashboard" && <ChangesBanner jobId={jobId} enabled={state.jobStatus === "completed"} />}
 
-      <div className="flex min-h-0 flex-1 gap-4">
+      <div ref={splitRef} className="flex min-h-0 flex-1 gap-4">
         <ProgressRail agents={state.agents} layers={state.layers} running={running} />
         <div
           className={`flex min-h-0 min-w-0 flex-1 flex-col ${tab === "Dashboard" ? "overflow-y-auto" : ""}`}
@@ -147,7 +168,20 @@ export default function ResearchPage() {
           {tab === "Documentary" && <DocumentaryView jobId={jobId} running={running} />}
           {tab === "Careers" && <CareersView state={state.categories.careers} running={running} />}
         </div>
-        {selectedEntityId && (tab === "Graph" || tab === "Documentary") && <NodePanel />}
+        {selectedEntityId && (tab === "Graph" || tab === "Documentary") && (
+          <>
+            <div
+              onPointerDown={startResize}
+              role="separator"
+              aria-orientation="vertical"
+              title="Drag to resize"
+              className="group -mx-2.5 flex w-3 shrink-0 cursor-col-resize items-center justify-center"
+            >
+              <div className="h-10 w-1 rounded-full bg-[var(--border)] transition-colors group-hover:bg-[var(--accent-line)]" />
+            </div>
+            <NodePanel width={panelWidth} />
+          </>
+        )}
       </div>
     </main>
   );
