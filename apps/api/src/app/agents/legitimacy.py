@@ -23,8 +23,10 @@ from app.db.engine import get_session
 from app.db.models import Entity
 from app.graph.resolution import add_claim, make_provenance
 from app.sources import domain as domain_src
-from app.sources import firecrawl
+from app.sources import gleif as gleif_src
+from app.sources import wayback as wayback_src
 from app.sources.http import fetcher
+from app.sources.layers import LayerTracker
 
 log = logging.getLogger(__name__)
 
@@ -100,13 +102,50 @@ async def run(ctx: AgentContext) -> dict:
         site_profile.get("offerings") or site_profile.get("pricing") or (len(site_text) > 1500)
     )
 
-    # --- domain infrastructure probes ---
+    # --- external evidence probes, hit one at a time and tracked on the dashboard ---
+    tracker = LayerTracker(ctx, category, [
+        ("Domain intel", "rdap"),
+        ("Web archive", "wayback"),
+        ("Global registry", "gleif"),
+    ])
+
+    # domain infrastructure: RDAP age + TLS + DNS/MX
     intel: dict = {}
-    if domain:
-        ctx.progress(category, f"Probing {domain} (age, TLS, DNS)")
+    if not domain:
+        tracker.skip("Domain intel", "no official domain to verify")
+    else:
+        tracker.start("Domain intel", f"Probing {domain} (age, TLS, DNS)")
         intel = await domain_src.domain_intel(domain)
+        tracker.hit("Domain intel", 1, detail=f"registered {intel.get('registered') or 'unknown'}")
     tls = intel.get("tls", {})
     dns = intel.get("dns", {})
+
+    # Web archive: an independent lower bound on how long the site has existed. Complements
+    # RDAP (which many registrars redact) so a long-lived site still scores its true age.
+    history = None
+    if not domain:
+        tracker.skip("Web archive", "no domain")
+    else:
+        tracker.start("Web archive", "Checking the Wayback Machine for site history")
+        history = await wayback_src.history(domain)
+        if history:
+            tracker.hit("Web archive", 1, detail=f"online since {history.first_capture}")
+        else:
+            tracker.empty("Web archive", "no archived captures")
+    # effective age = the older of registry age and first archived capture
+    rdap_age = intel.get("age_years")
+    archive_age = history.years_online if history else None
+    effective_age = max([a for a in (rdap_age, archive_age) if a is not None], default=None)
+
+    # Global registry: an ACTIVE LEI is a real, jurisdiction-bound legal entity — strong,
+    # official corroboration that reaches far beyond US/public companies (unlike SEC).
+    tracker.start("Global registry", "Looking up the GLEIF legal-entity registry")
+    lei = await gleif_src.lookup(root["name"], prefer_country="US" if root.get("cik") else None)
+    has_lei = bool(lei and lei.is_active)
+    if has_lei:
+        tracker.hit("Global registry", 1, detail=f"LEI {lei.lei} · {lei.jurisdiction or '—'}")
+    else:
+        tracker.empty("Global registry", "no active LEI")
 
     # --- third-party corroboration (present = bonus, absent = not penalised) ---
     has_wikidata = bool(root.get("wikidata_id"))
@@ -115,9 +154,11 @@ async def run(ctx: AgentContext) -> dict:
 
     # --- weighted base score from infra + substance (each value in 0..1) ---
     signals = [
-        ("Domain age", 0.26, _age_score(intel.get("age_years")),
-         (f"{intel['age_years']}y (since {intel['registered']})" if intel.get("age_years") is not None
-          else "registration date unavailable")),
+        ("Domain age", 0.26, _age_score(effective_age),
+         (f"{effective_age}y online"
+          + (f" (registered {intel['registered']})" if intel.get("age_years") is not None
+             else f" (archived since {history.first_capture})" if history else "")
+          if effective_age is not None else "registration/archive date unavailable")),
         ("Secure connection (TLS)", 0.20,
          1.0 if tls.get("secure") else (0.15 if tls.get("reachable") else 0.0),
          (f"valid cert · {tls.get('issuer')}" if tls.get("secure")
@@ -136,7 +177,12 @@ async def run(ctx: AgentContext) -> dict:
     base = sum(weight * value for _, weight, value, _ in signals) * 100
 
     # corroboration lifts the score (cap the boost so infra still dominates)
-    boost = (12 if has_wikidata else 0) + (10 if is_sec else 0) + (4 if has_wikipedia and not has_wikidata else 0)
+    boost = (
+        (12 if has_wikidata else 0)
+        + (10 if is_sec else 0)
+        + (12 if has_lei else 0)
+        + (4 if has_wikipedia and not has_wikidata else 0)
+    )
     score = round(min(100.0, base + boost))
     verdict, blurb = _band(score)
 
@@ -150,14 +196,15 @@ async def run(ctx: AgentContext) -> dict:
         flags.append("No business email (MX) configured")
     if site_text and not has_policy:
         flags.append("No privacy/terms pages found")
-    if not (has_wikidata or has_wikipedia or is_sec):
-        flags.append("No independent third-party record (Wikipedia/Wikidata/SEC)")
+    if not (has_wikidata or has_wikipedia or is_sec or has_lei):
+        flags.append("No independent third-party record (Wikipedia/Wikidata/SEC/GLEIF)")
     if not domain:
         flags.append("Could not determine an official domain to verify")
 
     corroboration = [
         label for present, label in (
             (has_wikipedia, "Wikipedia"), (has_wikidata, "Wikidata"), (is_sec, "SEC-registered"),
+            (has_lei, f"GLEIF LEI ({lei.jurisdiction})" if has_lei and lei.jurisdiction else "GLEIF LEI"),
         ) if present
     ]
 
@@ -189,6 +236,11 @@ async def run(ctx: AgentContext) -> dict:
                 prov = make_provenance(session, "legitimacy", intel.get("domain") and f"https://{intel['domain']}")
                 add_claim(session, entity, "legitimacy_score",
                           {"text": f"{score}/100 — {verdict}", "raw": score}, provenance=prov)
+                if has_lei:
+                    lprov = make_provenance(session, "gleif", lei.source_url)
+                    add_claim(session, entity, "lei",
+                              {"text": f"{lei.lei} ({lei.jurisdiction or '—'})", "raw": lei.lei},
+                              provenance=lprov)
                 session.commit()
     except Exception:
         log.exception("failed to persist legitimacy claim")
@@ -206,5 +258,9 @@ async def run(ctx: AgentContext) -> dict:
         "flags": flags,
         "registered": intel.get("registered"),
         "age_years": intel.get("age_years"),
+        "online_since": history.first_capture if history else None,
+        "lei": {"id": lei.lei, "jurisdiction": lei.jurisdiction, "registered_at": lei.registered_at,
+                "source_url": lei.source_url} if has_lei else None,
         "tls_issuer": tls.get("issuer"),
+        "layers": tracker.summary(),
     }

@@ -124,6 +124,9 @@ REGISTRY: dict[str, dict] = {
     "hn_algolia": {"categories": {"news", "web_presence"}, "cost": "free"},
     "github": {"categories": {"web_presence"}, "cost": "free"},
     "firecrawl": {"categories": {"profile", "funding"}, "cost": "freemium"},
+    "duckduckgo": {"categories": {"competitors", "funding", "people", "products", "social"}, "cost": "free"},
+    "gleif": {"categories": {"legitimacy", "overview"}, "cost": "free"},
+    "wayback": {"categories": {"legitimacy", "profile", "overview"}, "cost": "free"},
     "reddit": {"categories": {"social"}, "cost": "free"},
     "patentsview": {"categories": {"patents"}, "cost": "free"},
     # future: "gdelt", "apollo" (paid), ...

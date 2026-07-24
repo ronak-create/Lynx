@@ -103,7 +103,7 @@ export default function ResearchPage() {
       {tab === "Dashboard" && <ChangesBanner jobId={jobId} enabled={state.jobStatus === "completed"} />}
 
       <div className="flex min-h-0 flex-1 gap-4">
-        <ProgressRail agents={state.agents} running={running} />
+        <ProgressRail agents={state.agents} layers={state.layers} running={running} />
         <div
           className={`flex min-h-0 min-w-0 flex-1 flex-col ${tab === "Dashboard" ? "overflow-y-auto" : ""}`}
         >

@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useReducer } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { API_BASE, AgentStatus, api } from "@/lib/api";
+import { API_BASE, AgentStatus, LayerInfo, api } from "@/lib/api";
 
 export type JobLiveState = {
   jobStatus: "loading" | "queued" | "running" | "completed" | "failed";
@@ -10,14 +10,29 @@ export type JobLiveState = {
   entity: { id: string; name: string; description?: string | null; ticker?: string | null } | null;
   agents: Record<string, { status: AgentStatus; message: string | null }>;
   categories: Record<string, { status: "completed" | "failed"; payload: Record<string, unknown> }>;
+  // per-agent source ladder, streamed live (agent_layers) and hydrated from persisted payloads
+  layers: Record<string, LayerInfo[]>;
 };
 
 type Action =
   | { type: "snapshot"; state: Partial<JobLiveState> }
   | { type: "agent"; agent: string; status: AgentStatus; message?: string | null }
   | { type: "category"; agent: string; payload: Record<string, unknown> }
+  | { type: "layers"; agent: string; layers: LayerInfo[] }
   | { type: "entity"; entity: JobLiveState["entity"] }
   | { type: "job"; status: JobLiveState["jobStatus"] };
+
+// a completed run's ladder rides along in its category payload as `layers`
+function layersFromCategories(
+  categories: Record<string, { payload: Record<string, unknown> }>,
+): Record<string, LayerInfo[]> {
+  const out: Record<string, LayerInfo[]> = {};
+  for (const [cat, res] of Object.entries(categories)) {
+    const l = res.payload?.layers;
+    if (Array.isArray(l) && l.length) out[cat] = l as LayerInfo[];
+  }
+  return out;
+}
 
 const AGENT_ORDER = [
   "overview",
@@ -58,11 +73,18 @@ function reducer(state: JobLiveState, action: Action): JobLiveState {
           },
         },
       };
-    case "category":
+    case "category": {
+      const l = action.payload?.layers;
+      const layers =
+        Array.isArray(l) && l.length ? { ...state.layers, [action.agent]: l as LayerInfo[] } : state.layers;
       return {
         ...state,
         categories: { ...state.categories, [action.agent]: { status: "completed", payload: action.payload } },
+        layers,
       };
+    }
+    case "layers":
+      return { ...state, layers: { ...state.layers, [action.agent]: action.layers } };
     case "entity":
       return { ...state, entity: action.entity };
     case "job":
@@ -79,6 +101,7 @@ export function useJobEvents(jobId: string): JobLiveState {
     entity: null,
     agents: initialAgents(),
     categories: {},
+    layers: {},
   });
 
   useEffect(() => {
@@ -104,6 +127,7 @@ export function useJobEvents(jobId: string): JobLiveState {
             entity: job.entity,
             agents,
             categories: job.categories,
+            layers: layersFromCategories(job.categories),
           },
         });
         if (job.status === "completed" || job.status === "failed") return;
@@ -145,6 +169,9 @@ export function useJobEvents(jobId: string): JobLiveState {
             status: "failed",
             message: (d.error as string) ?? "failed",
           }),
+        );
+        on("agent_layers", (d) =>
+          dispatch({ type: "layers", agent: d.agent as string, layers: (d.layers as LayerInfo[]) ?? [] }),
         );
         on("category_data", (d) => {
           const { agent, ...payload } = d;

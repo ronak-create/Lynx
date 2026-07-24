@@ -7,7 +7,7 @@ from app.agents.base import AgentContext
 from app.db.engine import get_session
 from app.db.models import Entity
 from app.graph.resolution import add_edge, get_or_create_entity, make_provenance
-from app.sources import firecrawl
+from app.sources import websearch
 
 category = "funding"
 
@@ -31,11 +31,9 @@ async def run(ctx: AgentContext) -> dict:
     name = ctx.root["name"]
     if not (ctx.llm and ctx.llm.available):
         return {"available": False, "message": "Funding analysis needs an LLM provider (none configured)."}
-    if not firecrawl.available():
-        return {"available": False, "message": "Add a FIRECRAWL_API_KEY to research funding history."}
 
     ctx.progress(category, "Searching funding coverage")
-    results = await firecrawl.search(f"{name} funding round investors valuation raised", limit=8)
+    results = await websearch.search(f"{name} funding round investors valuation raised", limit=8)
     if not results:
         return {"available": True, "is_funded": False, "message": "No funding coverage found."}
 

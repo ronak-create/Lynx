@@ -9,7 +9,7 @@ from app.agents.relevance import distinctive_tokens, filter_items
 from app.db.engine import get_session
 from app.db.models import Entity
 from app.graph.extraction import extract_graph, persist_extraction
-from app.sources import firecrawl, reddit
+from app.sources import reddit, websearch
 
 category = "social"
 
@@ -26,10 +26,10 @@ async def run(ctx: AgentContext) -> dict:
     posts = filter_items([p.model_dump(mode="json") for p in posts_records], tokens)
     source = "reddit"
 
-    # Reddit blocks some hosts/IPs; fall back to a Firecrawl web search over discussion sites.
-    if not posts and firecrawl.available():
+    # Reddit blocks some hosts/IPs; fall back to a free web search over discussion sites.
+    if not posts:
         ctx.progress(category, "Reddit unavailable — searching the web for discussion")
-        results = await firecrawl.search(f'"{name}" reddit OR review OR discussion', limit=12)
+        results = await websearch.search(f'"{name}" reddit OR review OR discussion', limit=12)
         web_posts = [
             {
                 "title": r.title,

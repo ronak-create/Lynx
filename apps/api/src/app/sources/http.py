@@ -34,6 +34,9 @@ _LIMITERS: dict[str, AsyncLimiter] = {
     "rdap": AsyncLimiter(3, 1),
     "doh": AsyncLimiter(5, 1),
     "jina": AsyncLimiter(2, 1),
+    "duckduckgo": AsyncLimiter(1, 2),
+    "gleif": AsyncLimiter(2, 1),
+    "wayback": AsyncLimiter(2, 1),
     "generic": AsyncLimiter(3, 1),
 }
 

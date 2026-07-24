@@ -12,7 +12,7 @@ from app.db.engine import get_session
 from app.db.models import Entity
 from app.graph.extraction import extract_graph, persist_extraction
 from app.graph.resolution import add_claim, make_provenance
-from app.sources import firecrawl, reader
+from app.sources import firecrawl, reader, websearch
 
 category = "profile"
 
@@ -40,8 +40,8 @@ async def run(ctx: AgentContext) -> dict:
 
     ctx.progress(category, "Locating official website")
     site = f"https://{root['domain'].removeprefix('www.')}" if root.get("domain") else None
-    if not site and firecrawl.available():
-        site = await firecrawl.find_official_site(root["name"], None)
+    if not site:
+        site = await websearch.find_official_site(root["name"], None)
     if not site:
         return {"available": False, "message": "Could not locate an official website."}
 

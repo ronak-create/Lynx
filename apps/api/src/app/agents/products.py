@@ -1,20 +1,21 @@
-"""Products agent: what the company makes/sells.
+"""Products agent: what the company makes/sells — a tracked source ladder.
 
-Three tiers, most-structured first (parallels people.py):
+Layers, hit one at a time, most-structured first (parallels people.py, see [[layers]]):
   1. Wikidata P1056 products — exists only for notable/public companies.
-  2. The company's OWN site — the profile agent already LLM-extracted `offerings` into
-     shared context, so we reuse them (no extra LLM call). This is what makes the Products
-     card work for private startups with no Wikipedia footprint.
-  3. Web-search fallback — for companies thin on both, find products/services in press via
-     Firecrawl search + LLM.
-Every product becomes a `product` entity with a MAKES edge from the root."""
+  2. The company's OWN site — the profile agent already LLM-extracted `offerings` into shared
+     context, so we reuse them (no extra LLM call). Fills gaps beyond Wikidata.
+  3. Web search — last resort: find products/services in press snippets + LLM, only if the
+     higher-authority layers came up empty.
+Every product is deduped by name across layers and becomes a `product` entity with a MAKES
+edge from the root; each rung's outcome is reported to the dashboard."""
 from pydantic import BaseModel, Field
 
 from app.agents.base import AgentContext
 from app.db.engine import get_session
 from app.db.models import Entity
 from app.graph.resolution import add_edge, get_or_create_entity, make_provenance
-from app.sources import firecrawl
+from app.sources import websearch
+from app.sources.layers import LayerTracker
 
 category = "products"
 
@@ -25,6 +26,11 @@ class ProductList(BaseModel):
 
 async def run(ctx: AgentContext) -> dict:
     wikidata_products = ctx.profile.get("products", [])
+    tracker = LayerTracker(ctx, category, [
+        ("Wikidata", "wikidata"),
+        ("Company site", "site"),
+        ("Web search", "web"),
+    ])
     out: list[dict] = []
     seen: set[str] = set()
 
@@ -46,31 +52,42 @@ async def run(ctx: AgentContext) -> dict:
             out.append({"name": name, "source": source, "source_url": source_url,
                         "wikidata_id": wikidata_id})
 
-        # Tier 1: Wikidata
+        # ---- Layer 1: Wikidata ----
+        tracker.start("Wikidata", "Reading structured records (Wikidata)")
         for product in wikidata_products:
             add(product.name, "wikidata", product.source_url,
                 provider="wikidata", wikidata_id=product.wikidata_id)
-        # Release the write lock before emitting: progress events write job_events on a second
-        # connection, which deadlocks against our own open transaction.
+        # Release the write lock before emitting (second connection writes job_events →
+        # self-deadlock if we emit mid-write). Commit, THEN report the rung.
         session.commit()
-        ctx.progress(category, f"Found {len(out)} products in Wikidata")
+        tracker.hit("Wikidata", len(out))
 
-        # Tier 2: offerings the profile agent already pulled from the company's own site.
+        # ---- Layer 2: offerings the profile agent already pulled from the company's own site ----
         site_profile = ctx.shared.get("site_profile") or {}
         site_url = ctx.shared.get("site_url")
         offerings = site_profile.get("offerings") or []
-        if offerings:
-            ctx.progress(category, f"Adding {len(offerings)} offerings from the company site")
+        if not offerings:
+            tracker.skip("Company site", "no offerings extracted from the site")
+        else:
+            tracker.start("Company site", f"Adding {len(offerings)} offerings from the company site")
+            before = len(out)
             for name in offerings:
-                add(name, "site", site_url, provider="firecrawl", method="llm")
+                add(name, "site", site_url, provider="site", method="llm")
+            session.commit()
+            tracker.hit("Company site", len(out) - before)
 
-        # Tier 3: last resort — find products/services in press via web search.
-        if not out and firecrawl.available() and ctx.llm and ctx.llm.available:
-            session.commit()  # release the write lock before progress + network work
-            ctx.progress(category, "Searching the web for products and services")
-            results = await firecrawl.search(f"{ctx.root['name']} products services", limit=6)
+        # ---- Layer 3: web search (only if we still have nothing) ----
+        if out:
+            tracker.skip("Web search", "already found products from higher-authority sources")
+        elif not (ctx.llm and ctx.llm.available):
+            tracker.skip("Web search", "needs an LLM provider")
+        else:
+            tracker.start("Web search", "Searching the web for products and services")
+            results = await websearch.search(f"{ctx.root['name']} products services", limit=6)
             text = "\n".join(f"{r.title}. {r.description or ''}" for r in results)
             src_url = results[0].url if results else None
+            src_id = results[0].source_id if results else "web"
+            before = len(out)
             if text.strip():
                 extracted = await ctx.llm.extract(
                     f"From these search-result snippets about '{ctx.root['name']}', list that "
@@ -80,10 +97,10 @@ async def run(ctx: AgentContext) -> dict:
                     ProductList,
                 )
                 for name in (extracted.products if extracted else []):
-                    add(name, "web", src_url, provider="firecrawl", method="llm")
-
-        session.commit()
+                    add(name, "web", src_url, provider=src_id, method="llm")
+            session.commit()
+            tracker.hit("Web search", len(out) - before)
 
     if out:
         ctx.emit("graph_delta", agent=category, payload={})
-    return {"products": out}
+    return {"products": out, "layers": tracker.summary()}

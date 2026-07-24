@@ -9,6 +9,15 @@ export type Suggestion = {
 
 export type AgentStatus = "pending" | "running" | "completed" | "failed";
 
+export type LayerStatus = "pending" | "running" | "hit" | "empty" | "skipped" | "failed";
+export type LayerInfo = {
+  name: string;
+  source: string;
+  status: LayerStatus;
+  count: number;
+  detail?: string | null;
+};
+
 export type CategoryState = { status: "completed" | "failed"; payload: Record<string, unknown> };
 
 export type JobDetail = {
