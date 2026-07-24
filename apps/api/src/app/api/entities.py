@@ -154,9 +154,13 @@ async def analyze_entity(entity_id: str) -> dict:
 
     claim_lines = [f"- {c.predicate}: {(c.value or {}).get('text')}" for c in claims[:25]]
     analysis = await llm.generate(
-        "You analyze one node of a business knowledge graph. Write 2 short markdown paragraphs: "
-        "what this entity is and why it matters in this graph's context, then notable connections. "
-        "Factual, neutral, no preamble.",
+        "You analyze one node of a business knowledge graph. In 1-2 short markdown paragraphs, "
+        "surface what is SPECIFIC and non-obvious about this entity's role in THIS company's story — "
+        "a particular relationship, event, deal, or fact drawn from the data below. "
+        "Do NOT write textbook/dictionary definitions or universally-known facts (e.g. 'software is a "
+        "type of product', 'Microsoft is a technology company') — the reader already knows those. "
+        "Focus on what ties this node into the graph specifically. If the available data is thin, say so "
+        "in one honest sentence rather than padding with generic statements. Factual, neutral, no preamble.",
         f"Entity: {name} (type: {type_})\nSummary: {summary or 'n/a'}\n"
         f"Known facts:\n{chr(10).join(claim_lines) or 'none'}\n"
         f"Connections:\n{chr(10).join(edge_lines) or 'none'}",

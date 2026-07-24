@@ -51,6 +51,17 @@ export default function ResearchPage() {
   // explanation + re-run instead of a grid of empty cards
   const deadRun = state.jobStatus === "failed" && Object.keys(state.categories).length === 0;
 
+  // news/community items for the node panel to surface per-node mentions
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  const newsPayload = (state.categories.news?.payload ?? {}) as any;
+  const socialPayload = (state.categories.social?.payload ?? {}) as any;
+  const newsItems = [
+    ...(newsPayload.articles ?? []),
+    ...(newsPayload.hn_stories ?? []),
+    ...(socialPayload.posts ?? []),
+  ].map((a: any) => ({ title: a.title, url: a.url ?? a.source_url, date: a.published_at }));
+  /* eslint-enable @typescript-eslint/no-explicit-any */
+
   const refresh = async () => {
     const query = state.entity?.name ?? state.query;
     if (!query || refreshing) return;
@@ -179,7 +190,7 @@ export default function ResearchPage() {
             >
               <div className="h-10 w-1 rounded-full bg-[var(--border)] transition-colors group-hover:bg-[var(--accent-line)]" />
             </div>
-            <NodePanel key={selectedEntityId} width={panelWidth} />
+            <NodePanel key={selectedEntityId} width={panelWidth} news={newsItems} />
           </>
         )}
       </div>

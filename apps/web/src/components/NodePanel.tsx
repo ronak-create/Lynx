@@ -6,7 +6,9 @@ import { X, Sparkle, ArrowSquareOut, ArrowRight, ArrowLeft } from "@phosphor-ico
 import { api, NODE_COLORS } from "@/lib/api";
 import { useHighlight } from "@/stores/highlight";
 
-export function NodePanel({ width }: { width?: number }) {
+type NewsItem = { title: string; url?: string; date?: string };
+
+export function NodePanel({ width, news = [] }: { width?: number; news?: NewsItem[] }) {
   const { selectedEntityId, setSelected } = useHighlight();
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
@@ -37,6 +39,16 @@ export function NodePanel({ width }: { width?: number }) {
 
   const shownAnalysis = analysis ?? entity?.analysis ?? null;
 
+  // news/community items that specifically name this node — a concrete event tied to it,
+  // not a generic connection. Whole-word match on the core name (drop any "(disambig)" tail).
+  const term = (entity?.name ?? "").replace(/\s*\(.*?\)\s*/g, "").trim();
+  const mentions =
+    term.length >= 4
+      ? news
+          .filter((n) => n.title && new RegExp(`\\b${term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(n.title))
+          .slice(0, 4)
+      : [];
+
   return (
     <aside
       style={{ width: width ?? 320 }}
@@ -62,6 +74,31 @@ export function NodePanel({ width }: { width?: number }) {
       </div>
 
       {entity?.summary && <p className="text-[13px] leading-relaxed text-[var(--muted)]">{entity.summary.slice(0, 400)}</p>}
+
+      {mentions.length > 0 && (
+        <div>
+          <h4 className="mb-1 text-[11px] font-semibold tracking-wider text-[var(--muted)] uppercase">In the news</h4>
+          <ul className="flex flex-col divide-y divide-[var(--border)]">
+            {mentions.map((n, i) => (
+              <li key={i} className="py-1.5 first:pt-0 last:pb-0">
+                {n.url ? (
+                  <a
+                    href={n.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block text-[13px] text-[var(--text)] hover:text-[var(--accent)]"
+                  >
+                    {n.title}
+                  </a>
+                ) : (
+                  <span className="block text-[13px] text-[var(--text)]">{n.title}</span>
+                )}
+                {n.date && <span className="font-mono text-[10px] text-[var(--faint)]">{n.date}</span>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {entity && entity.claims.length > 0 && (
         <div>
