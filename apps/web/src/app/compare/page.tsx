@@ -31,13 +31,14 @@ function CompareInner() {
 
   const MAX = 3;
   function toggle(jobId: string) {
-    setSelected((cur) => {
-      if (!cur.includes(jobId) && cur.length >= MAX) return cur; // cap at 3
-      const next = cur.includes(jobId) ? cur.filter((j) => j !== jobId) : [...cur, jobId];
-      const qs = next.length ? `?jobs=${next.join(",")}` : "";
-      window.history.replaceState(null, "", `/compare${qs}`);
-      return next;
-    });
+    if (!selected.includes(jobId) && selected.length >= MAX) return; // cap at 3
+    const next = selected.includes(jobId)
+      ? selected.filter((j) => j !== jobId)
+      : [...selected, jobId];
+    setSelected(next);
+    // URL sync is a side effect — keep it in the handler, not inside a state updater (which runs during render)
+    const qs = next.length ? `?jobs=${next.join(",")}` : "";
+    window.history.replaceState(null, "", `/compare${qs}`);
   }
 
   return (
