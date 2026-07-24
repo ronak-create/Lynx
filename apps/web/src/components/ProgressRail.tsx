@@ -1,5 +1,5 @@
 "use client";
-import { CheckCircle, WarningCircle, Circle, MinusCircle, DotOutline } from "@phosphor-icons/react";
+import { CheckCircle, WarningCircle, Circle, MinusCircle, DotOutline, GithubLogo } from "@phosphor-icons/react";
 import { AGENT_LABELS, LayerInfo, LayerStatus } from "@/lib/api";
 import { JobLiveState } from "@/hooks/useJobEvents";
 
@@ -69,7 +69,7 @@ export function ProgressRail({
   const done = counted.filter(([, a]) => a.status === "completed" || a.status === "failed").length;
 
   return (
-    <aside className="panel flex w-64 shrink-0 flex-col self-start overflow-hidden p-1.5">
+    <aside className="panel flex min-h-0 w-64 shrink-0 flex-col self-stretch overflow-hidden p-1.5">
       <div className="flex items-center justify-between px-2.5 pt-1.5 pb-2">
         <h3 className="text-[11px] font-semibold tracking-[0.14em] text-[var(--muted)] uppercase">
           Research agents
@@ -84,7 +84,7 @@ export function ProgressRail({
           style={{ width: total ? `${(done / total) * 100}%` : "0%" }}
         />
       </div>
-      <ul className="flex flex-col">
+      <ul className="flex min-h-0 flex-1 flex-col overflow-y-auto">
         {entries.map(([id, a]) => {
           const active = a.status === "running";
           const dim = a.status === "pending" || a.status === "skipped";
@@ -122,6 +122,18 @@ export function ProgressRail({
           );
         })}
       </ul>
+      <div className="mt-auto flex items-center justify-between gap-2 border-t border-[var(--panel-2)] px-2.5 pt-2 pb-1">
+        <a
+          href="https://github.com/ronak-create/Lynx"
+          target="_blank"
+          rel="noreferrer"
+          className="press flex items-center gap-1.5 text-[11px] font-medium text-[var(--muted)] hover:text-[var(--text-strong)]"
+        >
+          <GithubLogo weight="fill" className="h-3.5 w-3.5" />
+          Lynx
+        </a>
+        <span className="text-[10px] text-[var(--faint)]">MIT · © 2026</span>
+      </div>
     </aside>
   );
 }
