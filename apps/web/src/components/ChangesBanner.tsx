@@ -15,7 +15,7 @@ export function ChangesBanner({ jobId, enabled }: { jobId: string; enabled: bool
   if (!data?.has_previous || data.changes.length === 0) return null;
 
   return (
-    <div className="rise mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-[#26314b] bg-[#080b14] px-4 py-2.5 font-mono text-[12px] text-[#c3cde0] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+    <div className="rise mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-[#2e3a58] bg-[#080b14] px-4 py-2.5 font-mono text-[12px] text-[#dbe3f2] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
       <span className="flex items-center gap-1.5 whitespace-nowrap text-[#5be3a3]">
         <span aria-hidden className="text-[#5be3a3]">❯</span>
         since-last-run
@@ -23,16 +23,16 @@ export function ChangesBanner({ jobId, enabled }: { jobId: string; enabled: bool
       {data.changes.map((c) => {
         const color =
           c.favorable === true
-            ? "text-[#4ade9f]"
+            ? "text-[#4ee6a6]"
             : c.favorable === false
-              ? "text-[#ff7a92]"
-              : "text-[#8a93a8]";
+              ? "text-[#ff8fa3]"
+              : "text-[#c2cce0]";
         return (
           <span key={c.key} className="flex items-center gap-1 whitespace-nowrap">
-            <span className="text-[#8a93a8]">{c.label}:</span>
-            <span className="text-[#565f74] line-through">{c.from}</span>
+            <span className="text-[#c2cbdf]">{c.label}:</span>
+            <span className="text-[#9aa4bb] line-through">{c.from}</span>
             <span className={color}>{c.direction === "up" ? "↑" : c.direction === "down" ? "↓" : "→"}</span>
-            <span className="text-[#eaeef7]">{c.to}</span>
+            <span className="text-[#f2f5fc]">{c.to}</span>
             {c.delta_pct != null && (
               <span className={color}>
                 ({c.delta_pct > 0 ? "+" : ""}
@@ -42,7 +42,6 @@ export function ChangesBanner({ jobId, enabled }: { jobId: string; enabled: bool
           </span>
         );
       })}
-      <span aria-hidden className="ml-0.5 h-3.5 w-[7px] animate-pulse bg-[#5be3a3]/70" />
     </div>
   );
 }
