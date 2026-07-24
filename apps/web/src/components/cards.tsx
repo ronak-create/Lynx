@@ -417,12 +417,20 @@ export function DashboardGrid({
               <p className="leading-relaxed text-[var(--text)]">{String(p.summary).slice(0, 480)}…</p>
             )}
             <div className="mt-0.5 flex flex-wrap gap-x-5 gap-y-1.5 text-[13px]">
-              {(p.facts ?? []).map((f: Payload) => (
-                <span key={f.predicate}>
-                  <span className="text-[var(--muted)]">{String(f.predicate).replace(/_/g, " ")}: </span>
-                  <span className="text-[var(--text-strong)]">{f.text}</span>
-                </span>
-              ))}
+              {/* founded / employees / hq already live in the Executive Summary scorecard — don't repeat them here */}
+              {(p.facts ?? [])
+                .filter(
+                  (f: Payload) =>
+                    !["founded", "employees", "hq", "headquarters"].includes(
+                      String(f.predicate).toLowerCase(),
+                    ),
+                )
+                .map((f: Payload) => (
+                  <span key={f.predicate}>
+                    <span className="text-[var(--muted)]">{String(f.predicate).replace(/_/g, " ")}: </span>
+                    <span className="text-[var(--text-strong)]">{f.text}</span>
+                  </span>
+                ))}
             </div>
             {p.wikipedia_url && <ExtLink href={p.wikipedia_url}>Wikipedia</ExtLink>}
           </div>
