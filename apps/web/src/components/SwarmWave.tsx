@@ -12,6 +12,14 @@ const MAX_PARTICLES = 2800; // hard cap; step grows to respect it
 const DRIFT = 6; // organic flow-field wander radius
 const BASE_R = 1.4; // crisp dot radius (no glow)
 const BASE_ALPHA = 0.5; // resting opacity — most of the field sits here (dense, always visible)
+// lit-wave shading (test alternative to size-scaling): every dot is the SAME size; as a wave
+// sweeps across it, it shades white (leading face, catching the light) → theme colour (crest) →
+// black (trailing face, in shadow), as if lit from the front of the travelling wave.
+const DOT_R = 1.8; // uniform dot radius — no per-particle size variance
+const HIGHLIGHT: [number, number, number] = [255, 255, 255]; // lit / leading face
+const SHADOW: [number, number, number] = [3, 4, 10]; // shadowed / trailing face (sinks into the bg)
+const LIGHT_DIR = 1; // set to -1 if the lit and shadow sides come out reversed
+const SHADE_GAIN = 1.35; // how hard the white↔black shading pushes (>1 = punchier lit/shadow)
 // travelling waves — several at once, each in a RANDOM independent direction, born and dying
 const TARGET_WAVES = 3;
 const WAVE_SHARP = 2.6; // higher = narrower bright band
@@ -104,15 +112,13 @@ const SwarmWave = forwardRef<SwarmHandle, { className?: string }>(function Swarm
     let H = 0;
     let dpr = Math.min(window.devicePixelRatio || 1, 2);
     let particles: Particle[] = [];
-    let colBase: [number, number, number] = [157, 123, 255];
-    let colBright: [number, number, number] = [183, 155, 255];
+    let colTheme: [number, number, number] = [157, 123, 255]; // the accent — the crest / mid-tone
     const waves: Wave[] = [];
     const pointer = { x: -9999, y: -9999, active: false };
 
     const readColors = () => {
       const cs = getComputedStyle(document.documentElement);
-      colBase = parseColor(cs.getPropertyValue("--accent")) ?? colBase;
-      colBright = parseColor(cs.getPropertyValue("--accent-bright")) ?? colBright;
+      colTheme = parseColor(cs.getPropertyValue("--accent")) ?? colTheme;
     };
     readColors();
     const themeObs = new MutationObserver(readColors);
@@ -159,6 +165,11 @@ const SwarmWave = forwardRef<SwarmHandle, { className?: string }>(function Swarm
         let x = p.hx;
         let y = p.hy;
         let e = 0;
+        // signed lighting: Σ presence·slope over the waves. cos(phase) is + on a wave's leading
+        // (lit) side, 0 at the crest, − on the trailing (shadow) side. Normalised by total
+        // presence it gives lit ∈ [−1,1] → white / theme / black.
+        let litNum = 0;
+        let litDen = 0;
 
         if (!reduce) {
           x += DRIFT * Math.sin(p.hy * 0.012 + t * 0.3 + p.seed);
@@ -171,12 +182,15 @@ const SwarmWave = forwardRef<SwarmHandle, { className?: string }>(function Swarm
             const env = Math.min(1, age / 1.5, (w.life - age) / 2.5);
             if (env <= 0) continue;
             const proj = p.hx * w.cos + p.hy * w.sin;
-            const band = Math.max(0, Math.sin(proj * w.freq - age * w.speed));
+            const phase = proj * w.freq - age * w.speed;
+            const band = Math.max(0, Math.sin(phase));
             const we = w.amp * env * band ** WAVE_SHARP;
             if (we > 0.01) {
               e += we;
               x += we * WAVE_DISP * w.cos;
               y += we * WAVE_DISP * w.sin;
+              litNum += we * Math.cos(phase) * LIGHT_DIR; // front-lit / back-shadowed
+              litDen += we;
             }
           }
         }
@@ -194,6 +208,8 @@ const SwarmWave = forwardRef<SwarmHandle, { className?: string }>(function Swarm
             x += (dx / dist) * pe * PULSE_DISP;
             y += (dy / dist) * pe * PULSE_DISP;
             e += pe;
+            litNum += pe * 0.7; // an interaction ring reads as a bright, front-lit flash
+            litDen += pe;
           }
         }
 
@@ -211,13 +227,21 @@ const SwarmWave = forwardRef<SwarmHandle, { className?: string }>(function Swarm
         }
 
         if (e > 1) e = 1;
-        const r = p.r + e * 2.2;
-        const cr = Math.round(colBase[0] + (colBright[0] - colBase[0]) * e);
-        const cg = Math.round(colBase[1] + (colBright[1] - colBase[1]) * e);
-        const cb = Math.round(colBase[2] + (colBright[2] - colBase[2]) * e);
-        ctx.fillStyle = `rgba(${cr},${cg},${cb},${BASE_ALPHA + e * 0.65})`;
+
+        // LIT WAVE: shade white (lit, leading) → theme (crest) → black (shadow, trailing).
+        // `m` is the signed shading strength: how far, and toward which end, this dot sits.
+        const lit = litDen > 0 ? litNum / litDen : 0; // [-1, 1]
+        const m = Math.max(-1, Math.min(1, lit * e * SHADE_GAIN));
+        const target = m >= 0 ? HIGHLIGHT : SHADOW;
+        const k = Math.abs(m);
+        const cr = Math.round(colTheme[0] + (target[0] - colTheme[0]) * k);
+        const cg = Math.round(colTheme[1] + (target[1] - colTheme[1]) * k);
+        const cb = Math.round(colTheme[2] + (target[2] - colTheme[2]) * k);
+        // the crest (bright band) is more opaque; shadow side eases off so it recedes
+        const alpha = BASE_ALPHA + e * 0.5 * (m >= 0 ? 1 : 0.3);
+        ctx.fillStyle = `rgba(${cr},${cg},${cb},${alpha})`;
         ctx.beginPath();
-        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.arc(x, y, DOT_R, 0, Math.PI * 2);
         ctx.fill();
       }
     };
