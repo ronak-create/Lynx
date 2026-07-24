@@ -13,8 +13,15 @@ MAX_NODES = 300
 
 
 @router.get("/graph/{job_id}")
-async def get_graph(job_id: str, depth: int = 2, min_confidence: float = 0.0) -> dict:
-    """Subgraph around the job's root entity via BFS over edges."""
+async def get_graph(job_id: str, depth: int = 1, min_confidence: float = 0.0) -> dict:
+    """Subgraph around the job's root entity.
+
+    BFS to `depth` picks the node set (default: the root company + its direct
+    neighbours). We then keep *every* edge whose endpoints are both in that set,
+    so the graph shows the searched company's links AND the links those neighbours
+    have with each other — without dragging in the deeper sprawl beyond `depth`
+    (e.g. a neighbour company's entire subsidiary tree).
+    """
     with get_session() as session:
         job = session.get(Job, job_id)
         if job is None or job.entity_id is None:
@@ -23,7 +30,6 @@ async def get_graph(job_id: str, depth: int = 2, min_confidence: float = 0.0) ->
 
         visited: set[str] = {root_id}
         frontier = deque([(root_id, 0)])
-        edges_out: list[Edge] = []
         while frontier:
             node_id, d = frontier.popleft()
             if d >= depth or len(visited) >= MAX_NODES:
@@ -36,16 +42,23 @@ async def get_graph(job_id: str, depth: int = 2, min_confidence: float = 0.0) ->
             ).all()
             for edge in edges:
                 other = edge.dst_id if edge.src_id == node_id else edge.src_id
-                edges_out.append(edge)
                 if other not in visited and len(visited) < MAX_NODES:
                     visited.add(other)
                     frontier.append((other, d + 1))
 
         entities = session.scalars(select(Entity).where(Entity.id.in_(visited))).all()
+        # all edges within the node set: root↔neighbour and neighbour↔neighbour
+        edges_all = session.scalars(
+            select(Edge).where(
+                Edge.src_id.in_(visited),
+                Edge.dst_id.in_(visited),
+                Edge.confidence >= min_confidence,
+            )
+        ).all()
         seen_edges: set[str] = set()
         links = []
-        for edge in edges_out:
-            if edge.id in seen_edges or edge.src_id not in visited or edge.dst_id not in visited:
+        for edge in edges_all:
+            if edge.id in seen_edges:
                 continue
             seen_edges.add(edge.id)
             links.append(
