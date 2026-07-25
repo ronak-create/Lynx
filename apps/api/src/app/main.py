@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import autocomplete, chat, compare, config, entities, jobs, realtime, research
+from app.api import autocomplete, chat, compare, config, entities, jobs, realtime, research, updates
 from app.config import settings
 from app.db.engine import init_db
 from app.sources.http import fetcher
@@ -55,6 +55,7 @@ app.include_router(entities.router)
 app.include_router(compare.router)
 app.include_router(realtime.router)
 app.include_router(chat.router)
+app.include_router(updates.router)
 
 
 @app.get("/health")

@@ -107,6 +107,17 @@ export type RunChanges = {
   changes: RunChange[];
 };
 
+export type XPost = {
+  id: string | null;
+  text: string;
+  created_at: string | null;
+  likes: number | null;
+  replies: number | null;
+  retweets: number | null;
+  url: string;
+};
+export type Updates = { handle: string; posts: XPost[] };
+
 async function json<T>(res: Response): Promise<T> {
   if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
   return res.json() as Promise<T>;
@@ -143,6 +154,8 @@ export const api = {
       json<CompareResult>(r),
     ),
   quote: (ticker: string) => fetch(`${API_BASE}/quote/${ticker}`).then((r) => json<LiveQuote>(r)),
+  updates: (handle: string) =>
+    fetch(`${API_BASE}/updates?handle=${encodeURIComponent(handle)}`).then((r) => json<Updates>(r)),
   changes: (jobId: string) => fetch(`${API_BASE}/runs/${jobId}/changes`).then((r) => json<RunChanges>(r)),
   ask: (jobId: string, question: string, history: { role: string; content: string }[]) =>
     fetch(`${API_BASE}/jobs/${jobId}/ask`, {

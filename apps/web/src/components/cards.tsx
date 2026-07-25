@@ -38,6 +38,9 @@ import {
   LinkSimple,
   Minus,
   Plus,
+  Heart,
+  Repeat,
+  ChatCircle,
   type Icon,
 } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
@@ -433,6 +436,82 @@ function SocialChannels({ state }: { state?: { status: string; payload: Payload 
             </a>
           );
         })}
+      </div>
+    </section>
+  );
+}
+
+function timeAgo(iso: string | null): string {
+  if (!iso) return "";
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "";
+  const s = Math.max(0, (Date.now() - then) / 1000);
+  if (s < 3600) return `${Math.floor(s / 60)}m`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h`;
+  if (s < 2592000) return `${Math.floor(s / 86400)}d`;
+  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+function fmtCount(n: number | null | undefined): string {
+  if (!n) return "0";
+  if (n >= 1000) return `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k`;
+  return String(n);
+}
+
+/* Recent posts from the entity's X profile — surfaced only when web_presence found an X handle.
+   Client-fetched (X's syndication is unavailable during the run), degrades to hidden on empty. */
+function RecentUpdates({ state }: { state?: { status: string; payload: Payload } }) {
+  const socials: Payload[] = state?.payload?.socials ?? [];
+  const x = socials.find((s) => s.platform === "X");
+  const handle = (x?.handle as string | undefined)?.replace(/^@/, "").trim();
+  const { data, isLoading } = useQuery({
+    queryKey: ["updates", handle],
+    queryFn: () => api.updates(handle!),
+    enabled: Boolean(handle),
+    staleTime: 5 * 60_000,
+  });
+  if (!handle) return null;
+  const posts = data?.posts ?? [];
+  if (!isLoading && posts.length === 0) return null;
+  return (
+    <section>
+      <h2 className="mb-3 flex items-center gap-2 text-[11px] font-semibold tracking-[0.14em] text-[var(--muted)] uppercase">
+        <XLogo weight="fill" className="h-3.5 w-3.5 text-[var(--accent)]" />
+        Recent updates
+        <span className="font-mono text-[10px] normal-case tracking-normal text-[var(--faint)]">
+          @{handle}
+        </span>
+      </h2>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {isLoading
+          ? Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="skeleton h-24 rounded-xl" />
+            ))
+          : posts.map((post) => (
+              <a
+                key={post.id ?? post.url}
+                href={post.url}
+                target="_blank"
+                rel="noreferrer"
+                className="rise flex flex-col gap-2 rounded-xl border border-[var(--border)] bg-[var(--panel)] p-3.5 hover:border-[var(--accent-line)]"
+              >
+                <p className="line-clamp-4 text-[13px] leading-relaxed text-[var(--text-strong)]">
+                  {post.text}
+                </p>
+                <div className="mt-auto flex items-center gap-3 text-[11px] text-[var(--faint)]">
+                  <span className="font-mono">{timeAgo(post.created_at)}</span>
+                  <span className="ml-auto flex items-center gap-1">
+                    <Heart weight="fill" className="h-3 w-3" /> {fmtCount(post.likes)}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Repeat className="h-3 w-3" /> {fmtCount(post.retweets)}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <ChatCircle className="h-3 w-3" /> {fmtCount(post.replies)}
+                  </span>
+                </div>
+              </a>
+            ))}
       </div>
     </section>
   );
@@ -1039,6 +1118,7 @@ export function DashboardGrid({
         )}
       />
       </Section>
+      <RecentUpdates state={categories.web_presence} />
       <SocialChannels state={categories.web_presence} />
     </div>
     </RunContext.Provider>

@@ -37,6 +37,7 @@ _LIMITERS: dict[str, AsyncLimiter] = {
     "duckduckgo": AsyncLimiter(1, 2),
     "gleif": AsyncLimiter(2, 1),
     "wayback": AsyncLimiter(2, 1),
+    "x_syndication": AsyncLimiter(1, 2),
     "generic": AsyncLimiter(3, 1),
 }
 
@@ -118,6 +119,45 @@ class Fetcher:
             return None
         await asyncio.to_thread(self._cache_put, key, url, resp.status_code, resp.text, ttl)
         return resp.text
+
+    async def get_text_via_curl(
+        self,
+        source_id: str,
+        url: str,
+        headers: dict | None = None,
+        ttl: int = 3600,
+    ) -> str | None:
+        """Fetch via the system `curl` binary instead of httpx.
+
+        Some anti-bot endpoints (e.g. X's syndication timeline) 429 every Python HTTP client
+        on its TLS/HTTP fingerprint but serve curl's fingerprint fine. Same cache + rate-limit
+        contract as get_text; degrades to None on any failure (missing curl, timeout, non-200)."""
+        key = _cache_key(url, None)
+        cached = await asyncio.to_thread(self._cache_get, key)
+        if cached is not None:
+            return cached
+        cmd = ["curl", "-s", "--compressed", "--max-time", "25", "-w", "\n%{http_code}"]
+        for hk, hv in (headers or {}).items():
+            cmd += ["-H", f"{hk}: {hv}"]
+        cmd.append(url)
+        async with self._semaphore, _limiter(source_id):
+            try:
+                proc = await asyncio.create_subprocess_exec(
+                    *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL
+                )
+                out, _ = await proc.communicate()
+            except (FileNotFoundError, OSError) as exc:
+                log.warning("curl fetch failed source=%s url=%s err=%s", source_id, url, exc)
+                return None
+        if proc.returncode != 0 or not out:
+            log.warning("curl non-zero source=%s url=%s rc=%s", source_id, url, proc.returncode)
+            return None
+        body, _, status = out.decode("utf-8", "replace").rpartition("\n")
+        if status.strip() != "200":
+            log.warning("curl non-200 source=%s url=%s status=%s", source_id, url, status.strip())
+            return None
+        await asyncio.to_thread(self._cache_put, key, url, 200, body, ttl)
+        return body
 
     async def get_json(
         self,

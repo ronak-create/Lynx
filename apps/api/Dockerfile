@@ -9,6 +9,10 @@ ENV UV_COMPILE_BYTECODE=1 \
 
 WORKDIR /app/apps/api
 
+# curl is used by the X-syndication source (X 429s Python HTTP clients but serves curl's fingerprint).
+RUN apt-get update && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+
 # 1) Install dependencies first (cached until the lockfile changes) — no project code yet.
 COPY apps/api/pyproject.toml apps/api/uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
