@@ -40,7 +40,7 @@ function buildSeries(financials?: Payload, funding?: Payload): { bars: Bar[]; ki
   const rounds: Payload[] = funding?.rounds ?? [];
   const parsed = rounds
     .map((r) => ({ label: String(r.stage || r.date || "Round"), value: parseMoney(r.amount), date: r.date }))
-    .filter((r): r is Bar & { date?: string } => r.value != null && r.value > 0);
+    .filter((r): r is { label: string; value: number; date: unknown } => r.value != null && r.value > 0);
   if (parsed.length >= 2) {
     // chronological if the dates sort cleanly; otherwise keep source order
     const withTime = parsed.map((r) => ({ ...r, t: Date.parse(String(r.date ?? "")) }));

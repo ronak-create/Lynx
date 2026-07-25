@@ -701,9 +701,9 @@ export function DashboardGrid({
 }) {
   // headlines already gathered by the run — used to link SWOT bullets back to a real source
   const swotSources: Src[] = [
-    ...(categories.news?.payload?.articles ?? []),
-    ...(categories.news?.payload?.hn_stories ?? []),
-    ...(categories.social?.payload?.posts ?? []),
+    ...((categories.news?.payload?.articles ?? []) as Payload[]),
+    ...((categories.news?.payload?.hn_stories ?? []) as Payload[]),
+    ...((categories.social?.payload?.posts ?? []) as Payload[]),
   ].map((a: Payload) => ({ title: a.title, url: a.url ?? a.source_url }));
 
   return (
