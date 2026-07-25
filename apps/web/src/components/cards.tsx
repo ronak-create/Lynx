@@ -1,7 +1,7 @@
 "use client";
 /* One card component per research category. Each renders from the category_data payload
    the corresponding agent emitted; shimmer skeleton while pending, error note when failed. */
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import {
   Buildings,
   ChartLineUp,
@@ -29,7 +29,6 @@ import {
   LinkedinLogo,
   GithubLogo,
   YoutubeLogo,
-  InstagramLogo,
   FacebookLogo,
   TiktokLogo,
   DiscordLogo,
@@ -47,7 +46,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api, fmtMoney } from "@/lib/api";
 import { JobLiveState } from "@/hooks/useJobEvents";
 import { Sparkline } from "./Sparkline";
-import { MediaPreview } from "./MediaPreview";
+import { PersonAvatar } from "./PersonAvatar";
 import { SitePreview } from "./SitePreview";
 import { FinancialGrowth } from "./FinancialGrowth";
 
@@ -252,15 +251,15 @@ function LiveStock({ payload: p }: { payload: Payload }) {
   const price = live?.price ?? p.price;
   const marketCap = live?.market_cap ?? p.market_cap;
   return (
-    <div className="flex flex-col gap-1.5">
-      <div className="flex items-baseline gap-2">
-        <span className="font-mono text-2xl font-semibold text-[var(--text-strong)]">{price}</span>
+    <div className="flex min-w-0 flex-col gap-1.5">
+      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+        <span className="font-mono text-2xl font-semibold break-all text-[var(--text-strong)]">{price}</span>
         <span className="text-xs text-[var(--muted)]">
           {p.currency} · {p.ticker}
         </span>
         {live && <span className="ml-auto text-[10px] tracking-wide text-[var(--faint)] uppercase">live</span>}
       </div>
-      <p className="text-xs text-[var(--muted)]">
+      <p className="text-xs break-words text-[var(--muted)]">
         Mkt cap <span className="font-mono">{fmtMoney(marketCap)}</span> · 52w{" "}
         <span className="font-mono">
           {p.fifty_two_week_low}–{p.fifty_two_week_high}
@@ -401,13 +400,31 @@ const SOCIAL_ICON: Record<string, Icon> = {
   LinkedIn: LinkedinLogo,
   GitHub: GithubLogo,
   YouTube: YoutubeLogo,
-  Instagram: InstagramLogo,
   Facebook: FacebookLogo,
   TikTok: TiktokLogo,
   Discord: DiscordLogo,
   Telegram: TelegramLogo,
   Reddit: RedditLogo,
 };
+
+// modern Instagram mark (rounded-square camera + lens + flash dot) — phosphor's fill glyph reads
+// as the dated solid square, so Instagram gets this bespoke outline instead.
+function InstagramMark({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className={className} aria-hidden>
+      <rect x="2.5" y="2.5" width="19" height="19" rx="5.5" strokeWidth="1.8" />
+      <circle cx="12" cy="12" r="4.6" strokeWidth="1.8" />
+      <circle cx="17.4" cy="6.6" r="1.15" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+// dispatch: Instagram uses the custom mark; every other platform uses its filled phosphor logo.
+function SocialGlyph({ platform, className }: { platform: string; className?: string }) {
+  if (platform === "Instagram") return <InstagramMark className={className} />;
+  const Ic = SOCIAL_ICON[platform] ?? LinkSimple;
+  return <Ic weight="fill" className={className} />;
+}
 
 function SocialChannels({ state }: { state?: { status: string; payload: Payload } }) {
   const socials: Payload[] = state?.payload?.socials ?? [];
@@ -419,7 +436,6 @@ function SocialChannels({ state }: { state?: { status: string; payload: Payload 
       </h2>
       <div className="flex flex-wrap gap-2">
         {socials.map((s) => {
-          const Ic = SOCIAL_ICON[s.platform] ?? LinkSimple;
           return (
             <a
               key={s.platform + s.handle}
@@ -428,7 +444,7 @@ function SocialChannels({ state }: { state?: { status: string; payload: Payload 
               rel="noreferrer"
               className="press flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--panel)] px-3 py-2 hover:border-[var(--accent-line)]"
             >
-              <Ic weight="fill" className="h-4 w-4 text-[var(--accent)]" />
+              <SocialGlyph platform={s.platform} className="h-4 w-4 text-[var(--accent)]" />
               <span className="text-[13px] font-medium text-[var(--text-strong)]">{s.platform}</span>
               <span className="font-mono text-[11px] text-[var(--faint)]">
                 {s.handle.startsWith("@") || s.platform === "X" ? s.handle : `@${s.handle}`}
@@ -456,6 +472,165 @@ function fmtCount(n: number | null | undefined): string {
   if (!n) return "0";
   if (n >= 1000) return `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k`;
   return String(n);
+}
+
+function HideImg({ src, alt, className }: { src: string; alt: string; className: string }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return null;
+  // eslint-disable-next-line @next/next/no-img-element -- arbitrary external hosts (Wikimedia)
+  return <img src={src} alt={alt} loading="lazy" onError={() => setFailed(true)} className={className} />;
+}
+
+// service-like offerings (vs physical/product goods) — a name heuristic, since the backend lumps
+// "products or services" together without a type.
+const SERVICE_RE =
+  /\b(cloud|music|tv\+?|pay|care|arcade|fitness\+?|news\+?|one|subscription|service|support|premium|plus|bank|insurance|api|platform|saas|hosting|studio|assistant|search|ads?|maps|drive|mail|meet|photos|wallet|business|enterprise|analytics|console)\b/i;
+
+// a product/service tile with a Wikipedia preview image (company-qualified query), Package fallback
+function ProductTile({ query, label, href }: { query: string; label: string; href?: string }) {
+  const { data: img } = useQuery({
+    queryKey: ["wiki-thumb", query],
+    enabled: query.trim().length >= 2,
+    staleTime: 1000 * 60 * 60,
+    queryFn: async () => {
+      const url =
+        `https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*` +
+        `&generator=search&gsrsearch=${encodeURIComponent(query)}&gsrlimit=3` +
+        `&prop=pageimages&piprop=thumbnail&pithumbsize=200`;
+      const r = await fetch(url).then((res) => res.json());
+      const pages = (Object.values(r?.query?.pages ?? {}) as Payload[]).sort(
+        (a, b) => ((a.index as number) ?? 99) - ((b.index as number) ?? 99),
+      );
+      const withImg = pages.filter((pg) => pg?.thumbnail?.source);
+      return (withImg[0]?.thumbnail?.source as string | undefined) ?? null;
+    },
+  });
+  const [failed, setFailed] = useState(false);
+  const show = img && !failed;
+  const inner = (
+    <>
+      <div className="flex h-[84px] w-[84px] items-center justify-center overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--panel-2)] transition group-hover:border-[var(--accent-line)]">
+        {show ? (
+          // eslint-disable-next-line @next/next/no-img-element -- external host (Wikipedia)
+          <img src={img} alt={label} loading="lazy" onError={() => setFailed(true)} className="h-full w-full object-cover" />
+        ) : (
+          <Package weight="duotone" className="h-7 w-7 text-[var(--faint)]" />
+        )}
+      </div>
+      <span className="w-[84px] truncate text-center text-[11px] text-[var(--text)]" title={label}>
+        {label}
+      </span>
+    </>
+  );
+  return href ? (
+    <a href={href} target="_blank" rel="noreferrer" className="press group flex flex-col items-center gap-1.5">
+      {inner}
+    </a>
+  ) : (
+    <span className="group flex flex-col items-center gap-1.5">{inner}</span>
+  );
+}
+
+function ProductsGrid({ products, company }: { products: Payload[]; company?: string }) {
+  if (products.length === 0)
+    return <p className="text-sm text-[var(--muted)]">No structured product data found</p>;
+  const q = (name: string) => (company ? `${company} ${name}` : name);
+  const services = products.filter((p) => SERVICE_RE.test(String(p.name)));
+  const goods = products.filter((p) => !SERVICE_RE.test(String(p.name)));
+  const grid = (items: Payload[]) => (
+    <div className="flex flex-wrap gap-3">
+      {items.slice(0, 12).map((pr) => (
+        <ProductTile
+          key={String(pr.name)}
+          query={q(String(pr.name))}
+          label={String(pr.name)}
+          href={pr.source_url as string | undefined}
+        />
+      ))}
+    </div>
+  );
+  // only label the groups when there are both, otherwise a single unlabelled grid
+  if (services.length > 0 && goods.length > 0)
+    return (
+      <div className="flex flex-col gap-4">
+        <div>
+          <span className="mb-2 block text-[10px] font-semibold tracking-wider text-[var(--muted)] uppercase">Products</span>
+          {grid(goods)}
+        </div>
+        <div>
+          <span className="mb-2 block text-[10px] font-semibold tracking-wider text-[var(--muted)] uppercase">Services</span>
+          {grid(services)}
+        </div>
+      </div>
+    );
+  return grid(products);
+}
+
+/* Overview image strip: a horizontal row of company-related images (the entity's own picture plus
+   Wikimedia Commons photos of it) that packs as many tiles as fit the block, recomputing on resize
+   (ResizeObserver) so it appends/removes tiles as the card grows. */
+function CompanyImageRow({ company, primary }: { company: string; primary?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [cols, setCols] = useState(4);
+  const W = 116;
+  const H = 82;
+  const GAP = 8;
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => {
+      setCols(Math.max(1, Math.floor((el.clientWidth + GAP) / (W + GAP))));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const { data: commons } = useQuery({
+    queryKey: ["commons-imgs", company],
+    enabled: company.trim().length >= 2,
+    staleTime: 1000 * 60 * 60,
+    queryFn: async () => {
+      const url =
+        `https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*` +
+        `&generator=search&gsrsearch=${encodeURIComponent(company)}&gsrnamespace=6&gsrlimit=20` +
+        `&prop=imageinfo&iiprop=url|mime&iiurlwidth=240`;
+      const r = await fetch(url).then((res) => res.json());
+      const pages = (Object.values(r?.query?.pages ?? {}) as Payload[]).sort(
+        (a, b) => ((a.index as number) ?? 99) - ((b.index as number) ?? 99),
+      );
+      return pages
+        .map((pg) => (pg.imageinfo as Payload[] | undefined)?.[0])
+        .filter((ii): ii is Payload => !!ii && /^image\/(jpe?g|png)$/i.test(String(ii.mime)))
+        .map((ii) => ii.thumburl as string)
+        .filter(Boolean);
+    },
+  });
+
+  // the entity's own picture first, then distinct Commons photos
+  const seen = new Set<string>();
+  const unique = [primary, ...(commons ?? [])]
+    .filter((u): u is string => !!u)
+    .filter((u) => (seen.has(u) ? false : (seen.add(u), true)));
+  if (unique.length === 0) return <div ref={ref} className="hidden" />;
+  const shown = unique.slice(0, cols);
+
+  return (
+    <div ref={ref} className="mb-1 flex gap-2 overflow-hidden">
+      {shown.map((src, i) => (
+        <div
+          key={src}
+          style={{ width: W, height: H }}
+          className="flex shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--panel-2)]"
+        >
+          <HideImg
+            src={src}
+            alt={`${company} image ${i + 1}`}
+            className={i === 0 && src === primary ? "h-full w-full bg-white object-contain p-1" : "h-full w-full object-cover"}
+          />
+        </div>
+      ))}
+    </div>
+  );
 }
 
 /* Recent posts from the entity's X profile — surfaced only when web_presence found an X handle.
@@ -542,14 +717,11 @@ export function DashboardGrid({
         state={categories.overview}
         render={(p) => (
           <div className="flex flex-col gap-2.5 text-sm">
-            {p.image_url && (
-              <MediaPreview
-                src={p.image_url}
-                alt={p.name}
-                kind="image"
-                className="float-right mb-1 ml-3 h-24 w-24 object-contain p-1"
-              />
-            )}
+            {/* a responsive row of company-related images that packs to fill the card width */}
+            <CompanyImageRow
+              company={String(p.name ?? "")}
+              primary={p.image_url as string | undefined}
+            />
             {p.summary && (
               <p className="leading-relaxed text-[var(--text)]">{String(p.summary).slice(0, 480)}…</p>
             )}
@@ -932,13 +1104,16 @@ export function DashboardGrid({
               const href = person.wikidata_url ?? person.url;
               return (
                 <li key={person.name + person.role} className="flex items-center justify-between gap-2 py-1.5 first:pt-0 last:pb-0">
-                  {href ? (
-                    <a href={href} target="_blank" rel="noreferrer" className="text-[var(--text)] hover:text-[var(--text-strong)]">
-                      {person.name}
-                    </a>
-                  ) : (
-                    <span className="text-[var(--text)]">{person.name}</span>
-                  )}
+                  <span className="flex min-w-0 items-center gap-2.5">
+                    <PersonAvatar name={String(person.name)} size={30} />
+                    {href ? (
+                      <a href={href} target="_blank" rel="noreferrer" className="truncate text-[var(--text)] hover:text-[var(--text-strong)]">
+                        {person.name}
+                      </a>
+                    ) : (
+                      <span className="truncate text-[var(--text)]">{person.name}</span>
+                    )}
+                  </span>
                   <span className="shrink-0 text-xs text-[var(--muted)]">{String(person.role).replace(/_/g, " ")}</span>
                 </li>
               );
@@ -948,23 +1123,14 @@ export function DashboardGrid({
         )}
       />
       <CardShell
-        title="Products"
+        title="Products & Services"
         icon={Package}
         state={categories.products}
         render={(p) => (
-          <div className="flex flex-wrap gap-1.5">
-            {(p.products ?? []).map((prod: Payload) => (
-              <span
-                key={prod.name}
-                className="rounded-full border border-[var(--border)] bg-[var(--panel-2)] px-2.5 py-1 text-xs text-[var(--text)]"
-              >
-                {prod.name}
-              </span>
-            ))}
-            {(p.products ?? []).length === 0 && (
-              <p className="text-sm text-[var(--muted)]">No structured product data found</p>
-            )}
-          </div>
+          <ProductsGrid
+            products={(p.products ?? []) as Payload[]}
+            company={String(categories.overview?.payload?.name ?? "")}
+          />
         )}
       />
       <CardShell

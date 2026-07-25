@@ -2,10 +2,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { Key, ArrowLeft, Eye, EyeSlash, Check } from "@phosphor-icons/react";
+import { Key, Eye, EyeSlash, Check, Gauge } from "@phosphor-icons/react";
 import { api } from "@/lib/api";
 import { useSettings } from "@/stores/settings";
 import { useApiKeys } from "@/stores/apiKeys";
+import { UsageBars } from "@/components/UsagePanel";
 
 // per-provider hint shown in the key field (secrets, except ollama which is a base URL)
 const KEY_HINT: Record<string, { placeholder: string; note?: string }> = {
@@ -21,6 +22,7 @@ export function SettingsPanel() {
   const { llmProvider, setLlmProvider, toggleCategory, isCategoryOn } = useSettings();
   const { keys, setKey, hasKey, save, setSave } = useApiKeys();
   const [showKeys, setShowKeys] = useState(false);
+  const [showUsage, setShowUsage] = useState(false);
   const [reveal, setReveal] = useState<Record<string, boolean>>({});
 
   if (!config) return null;
@@ -31,12 +33,20 @@ export function SettingsPanel() {
   const renderField = (id: string, label: string) => {
     const hint = KEY_HINT[id] ?? { placeholder: "API key" };
     const shown = reveal[id];
-    const value = keys[id] ?? "";
+    // browser-entered key wins; otherwise fall back to the key already set in the server .env
+    const envValue = config.env_keys?.[id] ?? "";
+    const value = keys[id] ?? envValue;
+    const fromEnv = !keys[id] && Boolean(envValue);
     return (
       <label key={id} className="block">
         <span className="mb-1 flex items-center gap-1.5 text-[12px] text-[var(--text)]">
           {label}
           {value && <Check weight="bold" className="h-3 w-3 text-[var(--accent)]" />}
+          {fromEnv && (
+            <span className="ml-auto rounded border border-[var(--border)] bg-[var(--panel-2)] px-1.5 py-0.5 font-mono text-[9px] tracking-wide text-[var(--faint)]">
+              .env
+            </span>
+          )}
         </span>
         <div className="relative">
           <input
@@ -123,8 +133,20 @@ export function SettingsPanel() {
         </div>
       </div>
 
-      {/* Configure keys lives at the bottom-right of the panel — click toggles the slide-out */}
-      <div className="mt-4 flex justify-end">
+      {/* API usage unrolls out the left edge; Configure keys out the right — one button each end */}
+      <div className="mt-4 flex justify-between">
+        <button
+          onClick={() => setShowUsage((s) => !s)}
+          aria-expanded={showUsage}
+          className={`press flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[11px] ${
+            showUsage
+              ? "border-[var(--accent-line)] bg-[var(--accent-soft)] text-[var(--accent)]"
+              : "border-[var(--border)] bg-[var(--panel-2)] text-[var(--muted)] hover:text-[var(--text-strong)]"
+          }`}
+        >
+          <Gauge weight="bold" className="h-3.5 w-3.5" />
+          {showUsage ? "Close usage" : "API usage"}
+        </button>
         <button
           onClick={() => setShowKeys((s) => !s)}
           aria-expanded={showKeys}
@@ -139,6 +161,30 @@ export function SettingsPanel() {
         </button>
       </div>
 
+      {/* API usage — unrolls sideways out of the model box's LEFT edge (mirror of the keys panel).
+          dir=rtl flips the grid reveal so it grows FROM the box edge outward to the left. */}
+      <div
+        dir="rtl"
+        className={`reveal-collapse-x absolute inset-y-0 right-full mr-3 w-80 ${showUsage ? "is-open" : ""}`}
+        aria-hidden={!showUsage}
+      >
+        <div className={`h-full min-w-0 overflow-hidden ${showUsage ? "" : "pointer-events-none"}`}>
+          <div dir="ltr" className="panel flex h-full w-80 flex-col p-4">
+            <h3 className="mb-3 flex shrink-0 items-center gap-1.5 text-[11px] font-semibold tracking-wider text-[var(--muted)] uppercase">
+              <Gauge weight="bold" className="h-3.5 w-3.5" />
+              API usage
+            </h3>
+            <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+              <UsageBars poll={showUsage} />
+            </div>
+            <p className="mt-3 shrink-0 border-t border-[var(--border)] pt-3 text-[10px] leading-relaxed text-[var(--faint)]">
+              Live usage over the last minute vs each service&rsquo;s rate limit. Firecrawl shows real
+              credits remaining.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* key configuration — unrolls sideways out of the model box's right edge */}
       <div
         className={`reveal-collapse-x absolute inset-y-0 left-full ml-3 w-80 ${showKeys ? "is-open" : ""}`}
@@ -146,20 +192,6 @@ export function SettingsPanel() {
       >
         <div className={`h-full min-w-0 overflow-hidden ${showKeys ? "" : "pointer-events-none"}`}>
           <div className="panel flex h-full w-80 flex-col p-4">
-            <div className="mb-3 flex shrink-0 items-center gap-2">
-              <button
-                onClick={() => setShowKeys(false)}
-                aria-label="Back"
-                className="press flex h-7 w-7 items-center justify-center rounded-md border border-[var(--border)] bg-[var(--panel-2)] text-[var(--muted)] hover:text-[var(--text-strong)]"
-              >
-                <ArrowLeft weight="bold" className="h-4 w-4" />
-              </button>
-              <h3 className="flex items-center gap-1.5 text-[11px] font-semibold tracking-wider text-[var(--muted)] uppercase">
-                <Key weight="bold" className="h-3.5 w-3.5" />
-                Provider API keys
-              </h3>
-            </div>
-
             <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pr-1">
               {keyProviders.map((p) => renderField(p.id, p.label))}
               {/* non-LLM data-source keys */}

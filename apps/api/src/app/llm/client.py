@@ -15,6 +15,7 @@ from openai import AsyncOpenAI, RateLimitError
 from pydantic import BaseModel, ValidationError
 
 from app.llm.providers import ProviderConfig, build_chain
+from app.usage import tracker
 
 log = logging.getLogger(__name__)
 T = TypeVar("T", bound=BaseModel)
@@ -62,6 +63,8 @@ class LLMClient:
                         ),
                         timeout=60,
                     )
+                if resp.usage:  # real token counts for the usage bars (TPM vs free-tier limit)
+                    tracker.record_tokens(cfg.id, resp.usage.total_tokens)
                 content = resp.choices[0].message.content
                 if content:
                     return content

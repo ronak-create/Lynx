@@ -7,7 +7,8 @@ import re
 
 # (platform, host regex, handle path pattern). Order matters: X before generic.
 _RULES: list[tuple[str, str]] = [
-    ("X", r"(?:twitter|x)\.com/([A-Za-z0-9_]{1,30})"),
+    # lookbehind stops the short "x.com" from matching INSIDE another host (xbox.com, netflix.com, vox.com…)
+    ("X", r"(?<![A-Za-z0-9])(?:twitter|x)\.com/([A-Za-z0-9_]{1,30})"),
     ("LinkedIn", r"linkedin\.com/(company/[A-Za-z0-9\-_%.]+|in/[A-Za-z0-9\-_%.]+|school/[A-Za-z0-9\-_%.]+)"),
     ("GitHub", r"github\.com/([A-Za-z0-9\-_.]+)"),
     ("YouTube", r"youtube\.com/(@[\w\-.]+|c/[\w\-.]+|channel/[\w\-.]+|user/[\w\-.]+)"),

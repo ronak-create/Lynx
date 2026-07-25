@@ -12,6 +12,8 @@ P = {
     "instance_of": "P31",
     "inception": "P571",
     "hq": "P159",
+    "admin_region": "P131",
+    "country": "P17",
     "industry": "P452",
     "employees": "P1128",
     "website": "P856",
@@ -54,6 +56,37 @@ async def get_entity(qid: str) -> dict | None:
     if not isinstance(data, dict):
         return None
     return (data.get("entities") or {}).get(qid)
+
+
+async def resolve_location(qid: str) -> str | None:
+    """Build a 'City, State, Country' address for a headquarters location item by walking its
+    administrative-territory chain (P131) up to the state level and reading its country (P17)."""
+    city = await get_entity(qid)
+    if not city:
+        return None
+    country_ids = claim_item_ids(city, "country")
+    # walk up the admin chain (Cupertino → Santa Clara County → California), stopping at the country
+    admins: list[str] = []
+    cur, seen = city, {qid}
+    for _ in range(3):
+        parents = claim_item_ids(cur, "admin_region")
+        nxt = next((p for p in parents if p not in seen and p not in country_ids), None)
+        if not nxt:
+            break
+        seen.add(nxt)
+        admins.append(nxt)
+        cur = await get_entity(nxt)
+        if not cur:
+            break
+    # city + top-most admin (state-ish) + country, resolved and de-duplicated in order
+    ids = [qid] + (admins[-1:] if admins else []) + country_ids[:1]
+    labels = await get_labels(ids)
+    parts: list[str] = []
+    for q in ids:
+        name = labels.get(q)
+        if name and name not in parts:
+            parts.append(name)
+    return ", ".join(parts) if parts else None
 
 
 async def get_labels(qids: list[str]) -> dict[str, str]:
@@ -158,12 +191,21 @@ async def company_profile(qid: str) -> dict:
     all_ids = [q for ids in (*people_ids.values(), *label_targets.values()) for q in ids]
     labels = await get_labels(all_ids) if all_ids else {}
 
-    for key in ("hq", "industry"):
-        names = [labels[q] for q in label_targets[key] if q in labels]
-        if names:
-            facts.append(
-                FactRecord(source_id="wikidata", source_url=url, predicate=key, text=", ".join(names), raw=names)
-            )
+    # headquarters: resolve the first location to a full "City, State, Country" address
+    hq_ids = label_targets["hq"]
+    if hq_ids:
+        loc = await resolve_location(hq_ids[0])
+        if not loc:  # fallback: de-duplicated raw labels (avoids "Cupertino, Cupertino")
+            names = list(dict.fromkeys(labels[q] for q in hq_ids if q in labels))
+            loc = ", ".join(names) if names else None
+        if loc:
+            facts.append(FactRecord(source_id="wikidata", source_url=url, predicate="hq", text=loc, raw=loc))
+
+    industry_names = [labels[q] for q in label_targets["industry"] if q in labels]
+    if industry_names:
+        facts.append(
+            FactRecord(source_id="wikidata", source_url=url, predicate="industry", text=", ".join(industry_names), raw=industry_names)
+        )
 
     people = [
         PersonRecord(source_id="wikidata", source_url=_wd_url(q), name=labels[q], role=role, wikidata_id=q)

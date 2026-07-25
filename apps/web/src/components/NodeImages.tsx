@@ -31,45 +31,68 @@ function HideableImg({ src, alt, className }: { src: string; alt: string; classN
   return <img src={src} alt={alt} loading="lazy" onError={() => setFailed(true)} className={className} />;
 }
 
+// map the node's entity type to a Wikipedia search qualifier so ambiguous names resolve to the
+// right subject — "Apple" as a COMPANY must find Apple Inc., not the fruit.
+const KIND_HINT: Record<string, string> = {
+  company: "company",
+  organization: "company",
+  org: "company",
+  investor: "company",
+  competitor: "company",
+  product: "product",
+};
+
+// does a Wikipedia short description read like the node's kind? used to reject a mismatched top hit.
+function descMatchesKind(desc: string, type?: string): boolean {
+  const d = desc.toLowerCase();
+  const t = (type ?? "").toLowerCase();
+  if (["company", "organization", "org", "investor", "competitor"].includes(t))
+    return /(company|corporation|business|manufacturer|technology|firm|brand|organization|inc\.?)/.test(d);
+  if (t === "person") return /( born |footballer|actor|founder|ceo|executive|politician|singer|player|author| is an? )/.test(d);
+  return true; // unknown kind: don't second-guess the top result
+}
+
 export function NodeImages({
   name,
   claims = [],
-  companyName,
-  companyDomain,
+  type,
 }: {
   name?: string;
   claims?: Claim[];
-  companyName?: string;
-  companyDomain?: string | null;
+  type?: string;
 }) {
   const ownDomain = domainFromClaims(claims);
 
   const { data: wikiImg } = useQuery({
-    queryKey: ["wiki-img", name],
+    queryKey: ["wiki-img", name, type],
     enabled: !!name && name.length >= 2,
     staleTime: 1000 * 60 * 60,
     queryFn: async () => {
+      const hint = KIND_HINT[(type ?? "").toLowerCase()];
+      const term = hint ? `${name} ${hint}` : name!;
       const url =
         `https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*` +
-        `&generator=search&gsrsearch=${encodeURIComponent(name!)}&gsrlimit=3` +
-        `&prop=pageimages&piprop=thumbnail&pithumbsize=320`;
+        `&generator=search&gsrsearch=${encodeURIComponent(term)}&gsrlimit=5` +
+        `&prop=pageimages|description&piprop=thumbnail&pithumbsize=320`;
       const r = await fetch(url).then((res) => res.json());
       const pages: any[] = Object.values(r?.query?.pages ?? {});
       pages.sort((a, b) => (a.index ?? 99) - (b.index ?? 99));
-      // only the best-matching page's own image — never a lower result's (that's a different entity)
-      return (pages[0]?.thumbnail?.source as string | undefined) ?? null;
+      // prefer the best hit whose description matches this node's kind AND has an image; that
+      // skips the fruit "Apple" for a company node and skips image-less disambiguation pages.
+      const withImg = pages.filter((p) => p?.thumbnail?.source);
+      const best =
+        withImg.find((p) => descMatchesKind(String(p.description ?? ""), type)) ?? withImg[0];
+      return (best?.thumbnail?.source as string | undefined) ?? null;
     },
   });
 
   const tiles: { src: string; alt: string; wide?: boolean; light?: boolean }[] = [];
   if (wikiImg) tiles.push({ src: wikiImg, alt: `${name} image` });
+  // only this node's OWN imagery — never another entity's homepage (that was misleading on
+  // competitor/related nodes, e.g. Microsoft's page appearing under the Apple node).
   if (ownDomain) {
     tiles.push({ src: shot(ownDomain), alt: `${ownDomain} homepage`, wide: true });
     tiles.push({ src: favicon(ownDomain), alt: `${ownDomain} favicon`, light: true });
-  }
-  // always show the researched company's homepage as related context (skip if it's this node's own)
-  if (companyDomain && companyDomain !== ownDomain) {
-    tiles.push({ src: shot(companyDomain), alt: `${companyName ?? companyDomain} homepage`, wide: true });
   }
   if (tiles.length === 0) return null;
 

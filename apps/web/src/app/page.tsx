@@ -1,9 +1,8 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { MagnifyingGlass, SlidersHorizontal, ArrowRight, ClockCounterClockwise, Scales } from "@phosphor-icons/react";
+import { MagnifyingGlass, SlidersHorizontal, ArrowRight } from "@phosphor-icons/react";
 import { api } from "@/lib/api";
 import { useSettings } from "@/stores/settings";
 import { SettingsPanel } from "@/components/SettingsPanel";
@@ -11,6 +10,8 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { GithubButton } from "@/components/GithubButton";
 import { DocsLink } from "@/components/DocsLink";
 import SwarmWave, { SwarmHandle } from "@/components/SwarmWave";
+import { LynxMark } from "@/components/LynxMark";
+import { RecentResearch } from "@/components/RecentResearch";
 
 export default function SearchPage() {
   const router = useRouter();
@@ -22,6 +23,20 @@ export default function SearchPage() {
   const { llmProvider, categories } = useSettings();
   const inputRef = useRef<HTMLInputElement>(null);
   const swarmRef = useRef<SwarmHandle>(null);
+  const settingsPanelRef = useRef<HTMLDivElement>(null);
+  const settingsBtnRef = useRef<HTMLButtonElement>(null);
+
+  // close the Model & options panel when clicking anywhere outside it (or the toggle button)
+  useEffect(() => {
+    if (!showSettings) return;
+    const onDown = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (settingsPanelRef.current?.contains(t) || settingsBtnRef.current?.contains(t)) return;
+      setShowSettings(false);
+    };
+    window.addEventListener("mousedown", onDown);
+    return () => window.removeEventListener("mousedown", onDown);
+  }, [showSettings]);
 
   // ripple a wave through the swarm from the search box — a visual "agents fanning out"
   const pulseFromSearch = () => {
@@ -85,6 +100,9 @@ export default function SearchPage() {
   return (
     <main className="flex min-h-[100dvh] flex-col items-center px-6 pt-[17vh]">
       <SwarmWave ref={swarmRef} />
+      <div className="fixed top-4 left-6 z-20">
+        <LynxMark className="h-12 w-12 text-[var(--text-strong)]" />
+      </div>
       <div className="fixed top-5 right-5 z-20 flex items-center gap-2">
         <DocsLink className="hidden sm:flex" />
         <GithubButton />
@@ -169,6 +187,7 @@ export default function SearchPage() {
 
         <div className="mt-2.5 flex justify-end">
           <button
+            ref={settingsBtnRef}
             onClick={() => setShowSettings((s) => !s)}
             className="press flex items-center gap-1.5 text-xs text-[var(--muted)] hover:text-[var(--text-strong)]"
           >
@@ -181,48 +200,13 @@ export default function SearchPage() {
       {/* always mounted; the .is-open class drives the grid-rows reveal both ways (open + close).
           overflow-y is clipped for that vertical unroll, but x stays visible so the keys panel
           can slide out past the model box's right edge. */}
-      <div className={`reveal-collapse w-full max-w-xl ${showSettings ? "is-open" : ""}`}>
+      <div ref={settingsPanelRef} className={`reveal-collapse w-full max-w-xl ${showSettings ? "is-open" : ""}`}>
         <div className="min-h-0 overflow-x-visible overflow-y-clip">
           <SettingsPanel />
         </div>
       </div>
 
-      {recent.length > 0 && (
-        <div className="rise mt-14 w-full max-w-xl pb-16">
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.14em] text-[var(--muted)] uppercase">
-              <ClockCounterClockwise weight="bold" className="h-3.5 w-3.5" />
-              Recent research
-            </h2>
-            <Link
-              href="/compare"
-              className="press flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.1em] text-[var(--muted)] uppercase hover:text-[var(--accent)]"
-            >
-              <Scales weight="bold" className="h-3.5 w-3.5" />
-              Compare
-            </Link>
-          </div>
-          <ul className="panel divide-y divide-[var(--border)] overflow-hidden">
-            {recent.slice(0, 6).map((r) => (
-              <li
-                key={r.job_id}
-                onClick={() => router.push(`/research/${r.job_id}`)}
-                className="group flex cursor-pointer items-center justify-between px-4 py-3 text-sm hover:bg-[var(--panel-hover)]"
-              >
-                <span className="text-[var(--text)] group-hover:text-[var(--text-strong)]">
-                  {r.entity_name ?? r.query}
-                </span>
-                <span className="flex items-center gap-3 font-mono text-xs text-[var(--faint)]">
-                  <span>
-                    {new Date(r.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-                  </span>
-                  <span className="capitalize">{r.status}</span>
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      {recent.length > 0 && <RecentResearch recent={recent} />}
     </main>
   );
 }

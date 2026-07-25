@@ -10,10 +10,52 @@ import { api } from "@/lib/api";
 import { useHighlight } from "@/stores/highlight";
 import { DocChat } from "./DocChat";
 import { MediaPreview } from "./MediaPreview";
+import { PersonAvatar } from "./PersonAvatar";
 
 const WIKI_LINK = /\[\[([^\]|]+)\|entity:([0-9a-f-]{36})\]\]/g;
 
-export function DocumentaryView({ jobId, running }: { jobId: string; running: boolean }) {
+type DocPerson = { name: string; role?: string; url?: string; wikidata_url?: string };
+
+function CastStrip({ people }: { people: DocPerson[] }) {
+  if (people.length === 0) return null;
+  return (
+    <div className="mb-6 flex flex-wrap gap-x-5 gap-y-3 border-b border-[var(--border)] pb-5">
+      {people.slice(0, 10).map((p) => {
+        const href = p.wikidata_url ?? p.url;
+        const body = (
+          <>
+            <PersonAvatar name={p.name} size={40} />
+            <span className="flex min-w-0 flex-col">
+              <span className="truncate text-[13px] font-medium text-[var(--text-strong)]">{p.name}</span>
+              {p.role && (
+                <span className="truncate text-[11px] text-[var(--muted)]">{String(p.role).replace(/_/g, " ")}</span>
+              )}
+            </span>
+          </>
+        );
+        return href ? (
+          <a key={p.name + (p.role ?? "")} href={href} target="_blank" rel="noreferrer" className="press flex items-center gap-2.5">
+            {body}
+          </a>
+        ) : (
+          <span key={p.name + (p.role ?? "")} className="flex items-center gap-2.5">
+            {body}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+export function DocumentaryView({
+  jobId,
+  running,
+  people = [],
+}: {
+  jobId: string;
+  running: boolean;
+  people?: DocPerson[];
+}) {
   const { setHovered, setSelected } = useHighlight();
   const { data, error } = useQuery({
     queryKey: ["document", jobId],
@@ -53,6 +95,7 @@ export function DocumentaryView({ jobId, running }: { jobId: string; running: bo
           {data.method === "llm" ? "LLM narrative + sourced data" : "Template from sourced data"} · entity links
           highlight the graph
         </p>
+        <CastStrip people={people} />
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
           urlTransform={(url) => url /* preserve entity: scheme; content is backend-generated */}

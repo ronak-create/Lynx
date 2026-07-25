@@ -5,7 +5,6 @@
 import { useRef, useState } from "react";
 import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { TextStyle, Color } from "@tiptap/extension-text-style";
 import Highlight from "@tiptap/extension-highlight";
 import Image from "@tiptap/extension-image";
 import Placeholder from "@tiptap/extension-placeholder";
@@ -26,8 +25,7 @@ import {
   LinkSimple,
   Image as ImageIcon,
   Highlighter,
-  TextT,
-  Eraser,
+  DownloadSimple,
 } from "@phosphor-icons/react";
 
 const key = (jobId: string) => `lynx-notes-${jobId}`;
@@ -38,8 +36,6 @@ const load = (jobId: string) => {
     return "";
   }
 };
-
-const SWATCHES = ["#9d7bff", "#7dd3fc", "#4ade9f", "#fcd34d", "#fb923c", "#ff7a92", "#f0abfc", "#eef0f8"];
 
 function Btn({
   onClick,
@@ -102,31 +98,6 @@ function Toolbar({ editor }: { editor: Editor }) {
       <Btn title="Link" active={editor.isActive("link")} onClick={addLink}><LinkSimple weight="bold" className="h-4 w-4" /></Btn>
       <Btn title="Image by URL" onClick={addImage}><ImageIcon weight="bold" className="h-4 w-4" /></Btn>
       <Btn title="Highlight" active={editor.isActive("highlight")} onClick={() => editor.chain().focus().toggleHighlight({ color: "#fcd34d55" }).run()}><Highlighter weight="bold" className="h-4 w-4" /></Btn>
-      <span className="mx-1 h-5 w-px bg-[var(--border)]" />
-      {/* text colour swatches */}
-      <span className="flex items-center gap-0.5 px-0.5">
-        <TextT weight="bold" className="h-4 w-4 text-[var(--faint)]" />
-        {SWATCHES.map((c) => (
-          <button
-            key={c}
-            type="button"
-            title={`Text colour ${c}`}
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => editor.chain().focus().setColor(c).run()}
-            className="press h-4 w-4 rounded-full border border-[var(--border)]"
-            style={{ background: c }}
-          />
-        ))}
-        <button
-          type="button"
-          title="Reset colour"
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => editor.chain().focus().unsetColor().run()}
-          className="press flex h-6 w-6 items-center justify-center rounded-md text-[var(--faint)] hover:text-[var(--text-strong)]"
-        >
-          <Eraser weight="bold" className="h-3.5 w-3.5" />
-        </button>
-      </span>
     </div>
   );
 }
@@ -145,8 +116,6 @@ export function NotesView({ jobId, entityName }: { jobId: string; entityName?: s
           HTMLAttributes: { rel: "noopener noreferrer nofollow", target: "_blank" },
         },
       }),
-      TextStyle,
-      Color,
       Highlight.configure({ multicolor: true }),
       Image.configure({ HTMLAttributes: { class: "rounded-lg border border-[var(--border)]" } }),
       Placeholder.configure({
@@ -154,7 +123,7 @@ export function NotesView({ jobId, entityName }: { jobId: string; entityName?: s
       }),
     ],
     content: load(jobId),
-    editorProps: { attributes: { class: "notes-content min-h-[55vh] focus:outline-none" } },
+    editorProps: { attributes: { class: "notes-content min-h-[70vh] focus:outline-none" } },
     onUpdate: ({ editor }) => {
       setSaved(false);
       if (timer.current) clearTimeout(timer.current);
@@ -169,22 +138,54 @@ export function NotesView({ jobId, entityName }: { jobId: string; entityName?: s
     },
   });
 
+  const downloadNotes = () => {
+    if (!editor) return;
+    const title = entityName ? `Notes — ${entityName}` : "Notes";
+    // Word opens an HTML document served with the msword MIME + .doc extension — a dependency-free
+    // way to hand back an editable Word file. The Office namespaces help Word render it natively.
+    const doc =
+      `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">` +
+      `<head><meta charset="utf-8"><title>${title}</title>` +
+      `<style>body{font-family:Calibri,system-ui,sans-serif;line-height:1.6;color:#1a1a2e}` +
+      `blockquote{border-left:3px solid #ccc;margin:0;padding-left:1em;color:#555}` +
+      `pre,code{background:#f4f4f8;font-family:Consolas,monospace}</style></head>` +
+      `<body><h1>${title}</h1>${editor.getHTML()}</body></html>`;
+    const blob = new Blob(["﻿", doc], { type: "application/msword" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `lynx-notes-${(entityName ?? jobId).replace(/[^\w-]+/g, "-").toLowerCase()}.doc`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
-    <div className="mx-auto flex h-full w-full max-w-3xl flex-col py-2">
+    <div className="mx-auto flex h-full w-full max-w-4xl flex-col py-2">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="flex items-center gap-2 text-[15px] font-semibold text-[var(--text-strong)]">
           <NotePencil weight="duotone" className="h-5 w-5 text-[var(--accent)]" />
           Notes{entityName ? ` · ${entityName}` : ""}
         </h2>
-        <span className={`flex items-center gap-1 text-[11px] ${saved ? "text-[var(--muted)]" : "text-[var(--faint)]"}`}>
-          {saved ? (
-            <>
-              <Check weight="bold" className="h-3.5 w-3.5 text-[var(--accent)]" /> Saved
-            </>
-          ) : (
-            "Saving…"
-          )}
-        </span>
+        <div className="flex items-center gap-3">
+          <span className={`flex items-center gap-1 text-[11px] ${saved ? "text-[var(--muted)]" : "text-[var(--faint)]"}`}>
+            {saved ? (
+              <>
+                <Check weight="bold" className="h-3.5 w-3.5 text-[var(--accent)]" /> Saved
+              </>
+            ) : (
+              "Saving…"
+            )}
+          </span>
+          <button
+            type="button"
+            onClick={downloadNotes}
+            title="Download these notes as an HTML file"
+            className="press flex items-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--panel-2)] px-2.5 py-1.5 text-[11px] font-medium text-[var(--muted)] hover:border-[var(--accent-line)] hover:text-[var(--text-strong)]"
+          >
+            <DownloadSimple weight="bold" className="h-3.5 w-3.5" />
+            Download
+          </button>
+        </div>
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">

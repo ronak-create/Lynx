@@ -54,10 +54,12 @@ export function ProgressRail({
   agents,
   layers = {},
   running = true,
+  collapsed = false,
 }: {
   agents: JobLiveState["agents"];
   layers?: JobLiveState["layers"];
   running?: boolean;
+  collapsed?: boolean;
 }) {
   // once the run is over, any agent still "pending" was never part of this run — mark it skipped
   const entries = Object.entries(agents).map(
@@ -69,7 +71,12 @@ export function ProgressRail({
   const done = counted.filter(([, a]) => a.status === "completed" || a.status === "failed").length;
 
   return (
-    <aside className="panel flex min-h-0 w-64 shrink-0 flex-col self-stretch overflow-hidden p-1.5">
+    <aside
+      aria-hidden={collapsed}
+      className={`panel flex min-h-0 shrink-0 flex-col self-stretch overflow-hidden transition-all duration-300 ease-in-out ${
+        collapsed ? "w-0 border-0 p-0 opacity-0" : "w-64 p-1.5 opacity-100"
+      }`}
+    >
       <div className="flex items-center justify-between px-2.5 pt-1.5 pb-2">
         <h3 className="text-[11px] font-semibold tracking-[0.14em] text-[var(--muted)] uppercase">
           Research agents

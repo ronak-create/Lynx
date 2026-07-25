@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import ReactMarkdown from "react-markdown";
-import { X, Sparkle, ArrowSquareOut, ArrowRight, ArrowLeft } from "@phosphor-icons/react";
+import { X, Sparkle, ArrowUpRight, ArrowRight, ArrowLeft } from "@phosphor-icons/react";
 import { api, NODE_COLORS } from "@/lib/api";
 import { useHighlight } from "@/stores/highlight";
 import { NodeImages } from "./NodeImages";
@@ -12,13 +12,9 @@ type NewsItem = { title: string; url?: string; date?: string };
 export function NodePanel({
   width,
   news = [],
-  companyName,
-  companyDomain,
 }: {
   width?: number;
   news?: NewsItem[];
-  companyName?: string;
-  companyDomain?: string | null;
 }) {
   const { selectedEntityId, setSelected } = useHighlight();
   const [analysis, setAnalysis] = useState<string | null>(null);
@@ -88,9 +84,7 @@ export function NodePanel({
 
       {entity?.summary && <p className="text-[13px] leading-relaxed text-[var(--muted)]">{entity.summary.slice(0, 400)}</p>}
 
-      {analyzed && (
-        <NodeImages name={entity?.name} claims={entity?.claims} companyName={companyName} companyDomain={companyDomain} />
-      )}
+      {analyzed && <NodeImages name={entity?.name} claims={entity?.claims} type={entity?.type} />}
 
       {mentions.length > 0 && (
         <div>
@@ -122,20 +116,19 @@ export function NodePanel({
           <h4 className="mb-1 text-[11px] font-semibold tracking-wider text-[var(--muted)] uppercase">Facts</h4>
           <ul className="flex flex-col gap-1 text-[13px]">
             {entity.claims.slice(0, 12).map((c, i) => (
-              <li key={i} className="flex flex-col">
-                <span className="break-words">
-                  <span className="text-[var(--muted)]">{c.predicate.replace(/_/g, " ")}: </span>
-                  {c.value?.text}
-                </span>
+              <li key={i} className="break-words">
+                <span className="text-[var(--muted)]">{c.predicate.replace(/_/g, " ")}: </span>
+                {c.value?.text}
                 {c.source?.url && (
                   <a
                     href={c.source.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex w-fit items-center gap-0.5 text-[10px] text-[var(--accent)]/80 hover:text-[var(--accent)] hover:underline"
+                    title={`Source: ${c.source.id}`}
+                    aria-label={`Source: ${c.source.id}`}
+                    className="ml-0.5 inline-flex -translate-y-0.5 items-center text-[var(--accent)]/70 hover:text-[var(--accent)]"
                   >
-                    <ArrowSquareOut weight="bold" className="h-2.5 w-2.5" />
-                    {c.source.id}
+                    <ArrowUpRight weight="bold" className="h-3 w-3" />
                   </a>
                 )}
               </li>

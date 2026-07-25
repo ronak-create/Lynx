@@ -1,10 +1,10 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import delete, select
 
 from app.agents.orchestrator import run_job
 from app.db.engine import get_session
-from app.db.models import Entity, Job
+from app.db.models import CategoryResult, Document, Entity, Job, JobEvent
 from app.jobs.manager import manager
 
 router = APIRouter()
@@ -56,3 +56,19 @@ async def list_runs(limit: int = 20) -> list[dict]:
                 }
             )
         return out
+
+
+@router.delete("/runs/{job_id}")
+async def delete_run(job_id: str) -> dict:
+    """Remove a run and its data (events, category results, document) from the DB. The entity is
+    left intact since other runs may reference it."""
+    with get_session() as session:
+        job = session.get(Job, job_id)
+        if job is None:
+            raise HTTPException(status_code=404, detail="Run not found")
+        session.execute(delete(JobEvent).where(JobEvent.job_id == job_id))
+        session.execute(delete(CategoryResult).where(CategoryResult.job_id == job_id))
+        session.execute(delete(Document).where(Document.job_id == job_id))
+        session.delete(job)
+        session.commit()
+    return {"deleted": job_id}

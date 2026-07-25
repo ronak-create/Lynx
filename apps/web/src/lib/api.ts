@@ -76,7 +76,11 @@ export type LlmProvider = {
   configured: boolean;
 };
 export type CategoryOption = { id: string; label: string };
-export type AppConfig = { llm_providers: LlmProvider[]; categories: CategoryOption[] };
+export type AppConfig = {
+  llm_providers: LlmProvider[];
+  categories: CategoryOption[];
+  env_keys?: Record<string, string>;
+};
 
 export type ResearchOptions = { llm_provider?: string | null; categories?: string[] | null };
 
@@ -118,6 +122,21 @@ export type XPost = {
 };
 export type Updates = { handle: string; posts: XPost[] };
 
+export type UsageService = {
+  id: string;
+  label: string;
+  group: "model" | "source";
+  used: number;
+  limit: number | null;
+  unit: string;
+};
+export type FirecrawlCredits = { remaining: number; limit: number | null; used: number | null };
+export type UsageSnapshot = {
+  services: UsageService[];
+  firecrawl_credits: FirecrawlCredits | null;
+  window_seconds: number;
+};
+
 async function json<T>(res: Response): Promise<T> {
   if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
   return res.json() as Promise<T>;
@@ -149,6 +168,8 @@ export const api = {
     fetch(`${API_BASE}/runs`).then((r) =>
       json<{ job_id: string; query: string; status: string; entity_name: string | null; created_at: string }[]>(r),
     ),
+  deleteRun: (jobId: string) =>
+    fetch(`${API_BASE}/runs/${jobId}`, { method: "DELETE" }).then((r) => json<{ deleted: string }>(r)),
   compare: (jobIds: string[]) =>
     fetch(`${API_BASE}/compare?jobs=${encodeURIComponent(jobIds.join(","))}`).then((r) =>
       json<CompareResult>(r),
@@ -156,6 +177,10 @@ export const api = {
   quote: (ticker: string) => fetch(`${API_BASE}/quote/${ticker}`).then((r) => json<LiveQuote>(r)),
   updates: (handle: string) =>
     fetch(`${API_BASE}/updates?handle=${encodeURIComponent(handle)}`).then((r) => json<Updates>(r)),
+  usage: (firecrawlKey?: string) =>
+    fetch(`${API_BASE}/usage${firecrawlKey ? `?firecrawl_key=${encodeURIComponent(firecrawlKey)}` : ""}`).then(
+      (r) => json<UsageSnapshot>(r),
+    ),
   changes: (jobId: string) => fetch(`${API_BASE}/runs/${jobId}/changes`).then((r) => json<RunChanges>(r)),
   ask: (jobId: string, question: string, history: { role: string; content: string }[]) =>
     fetch(`${API_BASE}/jobs/${jobId}/ask`, {
