@@ -115,6 +115,10 @@
   --font-mono: var(--font-geist-mono);
   --color-accent: var(--accent);
   --ease-out-quint: cubic-bezier(0.16, 1, 0.3, 1);
+  /* a touch rounder globally — buttons mostly use rounded-md / rounded-lg (pills use
+     rounded-full and are unaffected) */
+  --radius-md: 0.5rem;
+  --radius-lg: 0.7rem;
 }
 
 /* Base colour lives on <html> only; <body> stays transparent so the fixed negative-z-index
@@ -220,6 +224,13 @@ svg * {
   border-radius: 14px;
   box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-highlight),
     inset 0 -1px 0 rgba(0, 0, 0, 0.04);
+}
+/* On white, the near-white glass border + faint dark inset vanish — especially the bottom edge.
+   Give light-theme panels a toned border and a darker bottom inset line so all four edges read. */
+:root[data-theme="light"] .panel {
+  border-color: var(--border-strong);
+  box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-highlight),
+    inset 0 -1px 0 rgba(19, 22, 40, 0.16);
 }
 .panel-2 {
   background: var(--glass-sheen), var(--glass-bg-2);
@@ -411,6 +422,22 @@ html.no-scrollbar-page::-webkit-scrollbar {
 }
 .reveal-collapse.is-open {
   grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+/* horizontal sibling of the above — the child track transitions 0fr↔1fr on the column axis,
+   so a panel unrolls sideways (to the right) from the edge beside it, and rolls back the same
+   way on close. Same easing/duration as the vertical reveal so the two read as one motion. */
+.reveal-collapse-x {
+  display: grid;
+  grid-template-columns: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-columns 420ms var(--ease-out-quint),
+    opacity 420ms var(--ease-out-quint);
+}
+.reveal-collapse-x.is-open {
+  grid-template-columns: 1fr;
   opacity: 1;
 }
 .rise {

@@ -39,6 +39,8 @@ export function GraphView({ jobId }: { jobId: string }) {
   const [FG, setFG] = useState<any>(null);
   const [pal, setPal] = useState<Palette | null>(null);
   const [showEdgeLabels, setShowEdgeLabels] = useState(true);
+  // legend filter: which node types (categories) are isolated. Empty set = show everything.
+  const [activeTypes, setActiveTypes] = useState<Set<string>>(new Set());
 
   // read themed colours from CSS variables, and refresh when the theme changes
   useEffect(() => {
@@ -106,7 +108,9 @@ export function GraphView({ jobId }: { jobId: string }) {
   const paintNode = useCallback(
     (node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
       const focus = hoveredEntityId ?? selectedEntityId;
-      const dimmed = neighborIds !== null && !neighborIds.has(node.id);
+      // dim a node if a hover/selection excludes it, or a legend-type filter is on and its type isn't picked
+      const typeDimmed = activeTypes.size > 0 && !activeTypes.has(node.type);
+      const dimmed = typeDimmed || (neighborIds !== null && !neighborIds.has(node.id));
       const r = node.is_root ? 9 : 3.5 + Math.min(node.degree ?? 0, 12) * 0.45;
       const color = NODE_COLORS[node.type] ?? "#94a3b8";
 
@@ -135,7 +139,7 @@ export function GraphView({ jobId }: { jobId: string }) {
       }
       ctx.globalAlpha = 1;
     },
-    [hoveredEntityId, selectedEntityId, neighborIds, pal],
+    [hoveredEntityId, selectedEntityId, neighborIds, pal, activeTypes],
   );
 
   // draw the relationship type as a small label running along each edge (like the reference)
@@ -152,7 +156,8 @@ export function GraphView({ jobId }: { jobId: string }) {
       const isFocus = !!focus && (s.id === focus || t.id === focus);
       const mx = (s.x + t.x) / 2;
       const my = (s.y + t.y) / 2;
-      const fontSize = Math.max(7.5 / globalScale, 1.5);
+      // larger base + higher floor so the relation reads even when zoomed out a bit
+      const fontSize = Math.max(11 / globalScale, 2.8);
       let a = Math.atan2(t.y - s.y, t.x - s.x);
       if (a > Math.PI / 2) a -= Math.PI; // keep text upright
       if (a < -Math.PI / 2) a += Math.PI;
@@ -162,7 +167,7 @@ export function GraphView({ jobId }: { jobId: string }) {
       ctx.font = `${fontSize}px Sans-Serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.globalAlpha = isFocus ? 0.95 : focus ? 0.12 : 0.5;
+      ctx.globalAlpha = isFocus ? 0.95 : focus ? 0.12 : 0.62;
       ctx.fillStyle = isFocus ? pal?.accent ?? "#9d7bff" : pal?.text ?? "#aab2c8";
       ctx.fillText(label, 0, -fontSize * 0.6);
       ctx.restore();
@@ -193,18 +198,47 @@ export function GraphView({ jobId }: { jobId: string }) {
         </button>
       )}
       {data && (
-        <div className="absolute top-3 left-3 z-10 flex flex-wrap gap-1.5 text-[11px]">
+        <div className="absolute top-3 left-3 z-10 flex max-w-[70%] flex-wrap items-center gap-1.5 text-[11px]">
           {Object.entries(NODE_COLORS)
             .filter(([type]) => data.nodes.some((n) => n.type === type))
-            .map(([type, color]) => (
-              <span
-                key={type}
-                className="flex items-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--panel)]/85 px-2 py-0.5 text-[var(--muted)] backdrop-blur-sm"
-              >
-                <span className="h-2 w-2 rounded-full" style={{ background: color }} />
-                {type}
-              </span>
-            ))}
+            .map(([type, color]) => {
+              const active = activeTypes.has(type);
+              const filterOn = activeTypes.size > 0;
+              return (
+                <button
+                  key={type}
+                  onClick={() =>
+                    setActiveTypes((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(type)) next.delete(type);
+                      else next.add(type);
+                      return next;
+                    })
+                  }
+                  aria-pressed={active}
+                  title={`Isolate ${type} nodes`}
+                  className={`press flex items-center gap-1.5 rounded-md border px-2 py-0.5 backdrop-blur-sm ${
+                    active
+                      ? "border-[var(--accent-line)] bg-[var(--accent-soft)] text-[var(--text-strong)]"
+                      : filterOn
+                        ? "border-[var(--border)] bg-[var(--panel)]/60 text-[var(--faint)] opacity-70"
+                        : "border-[var(--border)] bg-[var(--panel)]/85 text-[var(--muted)] hover:text-[var(--text-strong)]"
+                  }`}
+                >
+                  <span className="h-2 w-2 rounded-full" style={{ background: color }} />
+                  {type}
+                </button>
+              );
+            })}
+          {activeTypes.size > 0 && (
+            <button
+              onClick={() => setActiveTypes(new Set())}
+              title="Clear selection — show all nodes"
+              className="press flex items-center gap-1 rounded-md border border-[var(--accent-line)] bg-[var(--accent-soft)] px-2 py-0.5 font-medium text-[var(--accent)] backdrop-blur-sm hover:opacity-80"
+            >
+              ✕ Clear
+            </button>
+          )}
         </div>
       )}
       {!data || !FG ? (
@@ -230,6 +264,14 @@ export function GraphView({ jobId }: { jobId: string }) {
             ctx.fill();
           }}
           linkColor={(l: any) => {
+            // when a legend filter is on, fade edges that don't touch a picked category
+            if (activeTypes.size > 0) {
+              const so = typeof l.source === "object" ? l.source : null;
+              const to = typeof l.target === "object" ? l.target : null;
+              const touchesActive =
+                (so && activeTypes.has(so.type)) || (to && activeTypes.has(to.type));
+              if (!touchesActive) return "rgba(139,147,167,0.05)";
+            }
             const focus = hoveredEntityId ?? selectedEntityId;
             if (!focus) return "rgba(139,147,167,0.25)";
             const s = typeof l.source === "object" ? l.source.id : l.source;

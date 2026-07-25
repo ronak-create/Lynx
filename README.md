@@ -23,6 +23,34 @@ since the previous run of the same entity).
 
 "Mirofish, but for researching businesses and digital products."
 
+## Screenshots
+
+<p align="center">
+  <img src="docs/screenshots/01-landing.png" alt="Search page with model & provider-key options" width="880"><br/>
+  <sub><em>Search — type a company or paste a URL; pick a model, toggle research categories, and add provider keys (stored in your browser).</em></sub>
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/02-dashboard.png" alt="Dashboard" width="880"><br/>
+  <sub><em>Dashboard — an LLM-synthesised executive summary above a gap-free masonry of live category cards.</em></sub>
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/03-graph.png" alt="Knowledge graph" width="880"><br/>
+  <sub><em>Knowledge graph — a force-directed map of entities and typed relationships; click a legend tag to isolate a category.</em></sub>
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/04-documentary.png" alt="Documentary" width="880"><br/>
+  <sub><em>Documentary — a generated narrative with wiki-linked entities that cross-highlight the graph, plus a grounded chat assistant.</em></sub>
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/06-config-keys.png" alt="Provider API keys panel" width="430">
+  <img src="docs/screenshots/05-key-people.png" alt="Key people card" width="430"><br/>
+  <sub><em>Provider API keys slide out from the model box; every dashboard block minimises with an eased collapse.</em></sub>
+</p>
+
 ## Stack
 - **Backend** (`apps/api`): Python 3.12 + FastAPI, SQLAlchemy 2 (SQLite/WAL), async multi-agent orchestrator with SSE progress streaming, per-source HTTP cache + rate limiting.
 - **Frontend** (`apps/web`): Next.js 15 + TypeScript, Tailwind, TanStack Query, zustand, `react-force-graph-2d`.

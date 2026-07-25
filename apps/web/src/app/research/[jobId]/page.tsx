@@ -6,8 +6,10 @@ import { CheckCircle, WarningCircle, ArrowsClockwise } from "@phosphor-icons/rea
 import { useJobEvents } from "@/hooks/useJobEvents";
 import { api } from "@/lib/api";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { GithubButton } from "@/components/GithubButton";
 import { ProgressRail } from "@/components/ProgressRail";
 import { DashboardGrid } from "@/components/cards";
+import { CompanyLogo } from "@/components/CompanyLogo";
 import { ChangesBanner } from "@/components/ChangesBanner";
 import { CareersView } from "@/components/CareersView";
 import { GraphView } from "@/components/GraphView";
@@ -60,6 +62,20 @@ export default function ResearchPage() {
     ...(newsPayload.hn_stories ?? []),
     ...(socialPayload.posts ?? []),
   ].map((a: any) => ({ title: a.title, url: a.url ?? a.source_url, date: a.published_at }));
+
+  // best resolved domain for the header logo: legitimacy reports a bare domain; else the
+  // profile site's hostname. Only ever our own resolved data, never user-typed text.
+  const legitDomain = (state.categories.legitimacy?.payload as any)?.domain as string | undefined;
+  const profileSite = (state.categories.profile?.payload as any)?.site as string | undefined;
+  let logoDomain: string | null = null;
+  if (legitDomain) logoDomain = legitDomain.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0];
+  else if (profileSite) {
+    try {
+      logoDomain = new URL(profileSite).hostname.replace(/^www\./, "");
+    } catch {
+      logoDomain = null;
+    }
+  }
   /* eslint-enable @typescript-eslint/no-explicit-any */
 
   const refresh = async () => {
@@ -118,6 +134,7 @@ export default function ResearchPage() {
           )}
           Refresh
         </button>
+        <GithubButton className="h-[30px] !py-0" />
         <ThemeToggle />
       </header>
 
@@ -163,6 +180,9 @@ export default function ResearchPage() {
                     boxShadow: "var(--glass-shadow), inset 0 1px 0 var(--glass-highlight)",
                   }}
                 >
+                  {state.entity?.name && (
+                    <CompanyLogo name={state.entity.name} domain={logoDomain} />
+                  )}
                   <h1 className="truncate text-xl font-semibold text-[var(--text-strong)]">
                     {state.entity?.name ?? "Resolving…"}
                   </h1>

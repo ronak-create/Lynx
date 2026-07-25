@@ -7,7 +7,7 @@ const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Lynx — Business Research",
+  title: "Lynx · See any company clearly",
   description: "Type a company. Get everything: dashboard, knowledge graph, documentary.",
 };
 

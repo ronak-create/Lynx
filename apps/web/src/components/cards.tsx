@@ -45,6 +45,7 @@ import { api, fmtMoney } from "@/lib/api";
 import { JobLiveState } from "@/hooks/useJobEvents";
 import { Sparkline } from "./Sparkline";
 import { MediaPreview } from "./MediaPreview";
+import { SitePreview } from "./SitePreview";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Payload = Record<string, any>;
@@ -77,13 +78,21 @@ function MinimizeButton({ collapsed, onClick }: { collapsed: boolean; onClick: (
   );
 }
 
-/* Collapses its content upward with a slow ease: the row track animates 1fr → 0fr while the
-   inner wrapper clips the overflow, so the body slides up into the header. */
+/* Collapses its content upward with an ease: the row track animates 1fr → 0fr while the inner
+   wrapper clips the overflow, so the body slides up into the header (and back down on expand).
+   The transition is set inline on purpose: a global unlayered `* { transition-property … }` rule
+   would otherwise override a Tailwind `transition-[grid-template-rows]` utility (unlayered CSS
+   beats layered utilities), and that list doesn't include grid-template-rows — so it'd snap. */
 function Collapse({ open, children }: { open: boolean; children: React.ReactNode }) {
   return (
     <div
-      className="grid transition-[grid-template-rows] duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]"
-      style={{ gridTemplateRows: open ? "1fr" : "0fr" }}
+      className="grid"
+      style={{
+        gridTemplateRows: open ? "1fr" : "0fr",
+        opacity: open ? 1 : 0,
+        transition:
+          "grid-template-rows 480ms cubic-bezier(0.16,1,0.3,1), opacity 320ms cubic-bezier(0.16,1,0.3,1)",
+      }}
     >
       <div className="min-h-0 overflow-hidden">
         {/* pt restores the header→body gap when open; it's clipped away when collapsed */}
@@ -97,19 +106,15 @@ function Card({
   title,
   icon: Icon,
   children,
-  wide = false,
 }: {
   title: string;
   icon: Icon;
   children: React.ReactNode;
-  wide?: boolean;
 }) {
   const [collapsed, setCollapsed] = useState(false);
   return (
     <section
-      className={`panel rise flex flex-col p-4 hover:border-[var(--border-strong)] ${
-        wide ? "md:col-span-2" : ""
-      }`}
+      className="panel rise mb-4 flex w-full break-inside-avoid flex-col p-4 hover:border-[var(--border-strong)]"
     >
       <div className="flex items-center gap-2">
         <h3 className="flex items-center gap-2 text-[11px] font-semibold tracking-[0.14em] text-[var(--muted)] uppercase">
@@ -137,18 +142,16 @@ function CardShell({
   title,
   icon,
   state,
-  wide,
   render,
 }: {
   title: string;
   icon: Icon;
   state?: { status: string; payload: Payload };
-  wide?: boolean;
   render: (p: Payload) => React.ReactNode;
 }) {
   const { running } = useContext(RunContext);
   return (
-    <Card title={title} icon={icon} wide={wide}>
+    <Card title={title} icon={icon}>
       {state == null ? (
         running ? (
           <Skeleton />
@@ -243,9 +246,10 @@ function Section({ label, children }: { label: string; children: React.ReactNode
       <h2 className="mb-3 text-[11px] font-semibold tracking-[0.14em] text-[var(--muted)] uppercase">
         {label}
       </h2>
-      {/* items-start so a minimized card shrinks to its header instead of stretching to
-          match a taller, expanded neighbour in the same row */}
-      <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2 xl:grid-cols-3">{children}</div>
+      {/* CSS multi-column masonry: cards pack top-to-bottom per column with no vertical gaps,
+          and when one collapses the cards below it in the same column slide up (they reflow each
+          frame as the height animates) — no empty space, regardless of neighbour heights. */}
+      <div className="columns-1 gap-4 md:columns-2 xl:columns-3">{children}</div>
     </section>
   );
 }
@@ -402,7 +406,6 @@ export function DashboardGrid({
         title="Overview"
         icon={Buildings}
         state={categories.overview}
-        wide
         render={(p) => (
           <div className="flex flex-col gap-2.5 text-sm">
             {p.image_url && (
@@ -440,12 +443,12 @@ export function DashboardGrid({
         title="Profile"
         icon={Storefront}
         state={categories.profile}
-        wide
         render={(p) =>
           !p.available ? (
             <p className="text-sm text-[var(--muted)]">{p.message ?? "No profile available"}</p>
           ) : (
             <div className="flex flex-col gap-2.5 text-sm">
+              {p.site && <SitePreview url={p.site} />}
               {p.what_they_do && <p className="leading-relaxed text-[var(--text)]">{p.what_they_do}</p>}
               <div className="flex flex-wrap gap-x-5 gap-y-1 text-[13px]">
                 {p.business_model && (
@@ -499,7 +502,6 @@ export function DashboardGrid({
         title="Legitimacy"
         icon={ShieldCheck}
         state={categories.legitimacy}
-        wide
         render={(p) => (
           <div className="flex flex-col gap-3 text-sm">
             <div className="flex items-center gap-4">
@@ -664,7 +666,6 @@ export function DashboardGrid({
         title="News"
         icon={Newspaper}
         state={categories.news}
-        wide
         render={(p) => (
           <div className="flex flex-col gap-2 text-sm">
             <p className="flex items-center gap-3 text-[11px] tracking-wide text-[var(--muted)] uppercase">
@@ -729,7 +730,6 @@ export function DashboardGrid({
         title="Community"
         icon={ChatsCircle}
         state={categories.social}
-        wide
         render={(p) =>
           (p.posts ?? []).length === 0 ? (
             <p className="text-sm text-[var(--muted)]">No Reddit discussion found</p>
@@ -862,7 +862,6 @@ export function DashboardGrid({
         title="Operational Signals"
         icon={StackSimple}
         state={categories.signals}
-        wide
         render={(p) =>
           !p.available ? (
             <p className="text-sm text-[var(--muted)]">{p.message ?? "No operational signals found"}</p>

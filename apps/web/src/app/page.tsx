@@ -8,6 +8,7 @@ import { api } from "@/lib/api";
 import { useSettings } from "@/stores/settings";
 import { SettingsPanel } from "@/components/SettingsPanel";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { GithubButton } from "@/components/GithubButton";
 import SwarmWave, { SwarmHandle } from "@/components/SwarmWave";
 
 export default function SearchPage() {
@@ -83,7 +84,8 @@ export default function SearchPage() {
   return (
     <main className="flex min-h-[100dvh] flex-col items-center px-6 pt-[17vh]">
       <SwarmWave ref={swarmRef} />
-      <div className="fixed top-5 right-5 z-20">
+      <div className="fixed top-5 right-5 z-20 flex items-center gap-2">
+        <GithubButton />
         <ThemeToggle />
       </div>
 
@@ -174,9 +176,11 @@ export default function SearchPage() {
         </div>
       </div>
 
-      {/* always mounted; the .is-open class drives the grid-rows reveal both ways (open + close) */}
+      {/* always mounted; the .is-open class drives the grid-rows reveal both ways (open + close).
+          overflow-y is clipped for that vertical unroll, but x stays visible so the keys panel
+          can slide out past the model box's right edge. */}
       <div className={`reveal-collapse w-full max-w-xl ${showSettings ? "is-open" : ""}`}>
-        <div className="min-h-0 overflow-hidden">
+        <div className="min-h-0 overflow-x-visible overflow-y-clip">
           <SettingsPanel />
         </div>
       </div>

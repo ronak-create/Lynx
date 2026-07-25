@@ -20,6 +20,12 @@ const REST_SCALE = 0.78; // resting dots sit a little smaller so the wave stands
 const REST_ALPHA_MUL = 0.82; // …and a little more transparent when no wave is on them
 const HIGHLIGHT: [number, number, number] = [255, 255, 255]; // lit / leading face
 const SHADOW: [number, number, number] = [3, 4, 10]; // shadowed / trailing face (sinks into the bg)
+// LIGHT THEME: white crests are invisible on a white page, so the model inverts — the lit crest
+// shades toward near-black (reads punchy on white) and the trailing face recedes toward the light
+// base. Only these + a higher base alpha change in light mode; the dark look is untouched.
+const HIGHLIGHT_LIGHT: [number, number, number] = [16, 12, 34]; // lit crest — dark & vivid on white
+const SHADOW_LIGHT: [number, number, number] = [246, 247, 251]; // trailing face sinks into the light bg
+const BASE_ALPHA_LIGHT = 0.66; // resting field sits denser/darker so it doesn't wash out
 const LIGHT_DIR = 1; // set to -1 if the lit and shadow sides come out reversed
 const SHADE_GAIN = 1.35; // how hard the white↔black shading pushes (>1 = punchier lit/shadow)
 // travelling waves — several at once, each in a RANDOM independent direction, born and dying
@@ -41,6 +47,11 @@ const POINTER_PUSH = 24; // px repulsion at the pointer
 const POINTER_EASE = 0.085; // how fast the halo catches up to the cursor — lower = more trailing lag
 const REFLECT_R = 230; // radius around the cursor where waves appear to bounce off it
 const REFLECT_GAIN = 1.2; // strength of the reflected wavelet vs the incident wave
+// hue rotation (test) — the crest colour cycles its hue across the plane and over time,
+// so a slow rainbow band drifts diagonally through the swarm instead of one fixed accent.
+const HUE_ROTATE = true;
+const HUE_SPEED = 12; // deg/s the whole field cycles
+const HUE_SPAN = 220; // deg swept from one corner of the plane to the opposite one
 
 type Particle = { hx: number; hy: number; r: number; seed: number };
 type Pulse = { x: number; y: number; t: number };
@@ -69,6 +80,45 @@ function parseColor(v: string): [number, number, number] | null {
   }
   const m = s.match(/[\d.]+/g);
   return m && m.length >= 3 ? [+m[0], +m[1], +m[2]] : null;
+}
+
+// convert once so we can spin the hue while keeping the theme's saturation/lightness
+function rgbToHsl([r, g, b]: [number, number, number]): [number, number, number] {
+  r /= 255;
+  g /= 255;
+  b /= 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  let h = 0;
+  let s = 0;
+  const d = max - min;
+  if (d !== 0) {
+    s = d / (1 - Math.abs(2 * l - 1));
+    if (max === r) h = ((g - b) / d) % 6;
+    else if (max === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    h *= 60;
+    if (h < 0) h += 360;
+  }
+  return [h, s, l];
+}
+
+function hslToRgb(h: number, s: number, l: number): [number, number, number] {
+  h = ((h % 360) + 360) % 360;
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = l - c / 2;
+  let r = 0;
+  let g = 0;
+  let b = 0;
+  if (h < 60) [r, g, b] = [c, x, 0];
+  else if (h < 120) [r, g, b] = [x, c, 0];
+  else if (h < 180) [r, g, b] = [0, c, x];
+  else if (h < 240) [r, g, b] = [0, x, c];
+  else if (h < 300) [r, g, b] = [x, 0, c];
+  else [r, g, b] = [c, 0, x];
+  return [Math.round((r + m) * 255), Math.round((g + m) * 255), Math.round((b + m) * 255)];
 }
 
 function spawnWave(now: number, backdate = false): Wave {
@@ -118,6 +168,8 @@ const SwarmWave = forwardRef<SwarmHandle, { className?: string }>(function Swarm
     let dpr = Math.min(window.devicePixelRatio || 1, 2);
     let particles: Particle[] = [];
     let colTheme: [number, number, number] = [157, 123, 255]; // the accent — the crest / mid-tone
+    let baseHsl = rgbToHsl(colTheme); // theme hue/sat/light — hue gets spun per particle
+    let isLight = false; // drives the light-theme shading inversion so the field reads on white
     const waves: Wave[] = [];
     // x/y is the *smoothed* halo position that eases toward the raw cursor (tx/ty),
     // so the ripple trails a little behind the mouse instead of snapping to it.
@@ -126,6 +178,8 @@ const SwarmWave = forwardRef<SwarmHandle, { className?: string }>(function Swarm
     const readColors = () => {
       const cs = getComputedStyle(document.documentElement);
       colTheme = parseColor(cs.getPropertyValue("--accent")) ?? colTheme;
+      baseHsl = rgbToHsl(colTheme);
+      isLight = document.documentElement.getAttribute("data-theme") === "light";
     };
     readColors();
     const themeObs = new MutationObserver(readColors);
@@ -273,13 +327,27 @@ const SwarmWave = forwardRef<SwarmHandle, { className?: string }>(function Swarm
         // `m` is the signed shading strength: how far, and toward which end, this dot sits.
         const lit = litDen > 0 ? litNum / litDen : 0; // [-1, 1]
         const m = Math.max(-1, Math.min(1, lit * e * SHADE_GAIN));
-        const target = m >= 0 ? HIGHLIGHT : SHADOW;
+        // light theme flips the light/shadow ends (dark crest, light trailing) so the wave shows on white
+        const hi = isLight ? HIGHLIGHT_LIGHT : HIGHLIGHT;
+        const sh = isLight ? SHADOW_LIGHT : SHADOW;
+        const target = m >= 0 ? hi : sh;
         const k = Math.abs(m);
-        const cr = Math.round(colTheme[0] + (target[0] - colTheme[0]) * k);
-        const cg = Math.round(colTheme[1] + (target[1] - colTheme[1]) * k);
-        const cb = Math.round(colTheme[2] + (target[2] - colTheme[2]) * k);
+        // spin the crest hue: a diagonal position ramp across the plane + a steady time cycle
+        const crest = HUE_ROTATE
+          ? hslToRgb(
+              baseHsl[0] +
+                t * HUE_SPEED +
+                ((p.hx + p.hy) / (W + H)) * HUE_SPAN,
+              baseHsl[1],
+              baseHsl[2],
+            )
+          : colTheme;
+        const cr = Math.round(crest[0] + (target[0] - crest[0]) * k);
+        const cg = Math.round(crest[1] + (target[1] - crest[1]) * k);
+        const cb = Math.round(crest[2] + (target[2] - crest[2]) * k);
         // the crest (bright band) is more opaque; shadow side eases off so it recedes
-        const alpha = BASE_ALPHA * REST_ALPHA_MUL + e * (0.5 + BASE_ALPHA * (1 - REST_ALPHA_MUL)) * (m >= 0 ? 1 : 0.3);
+        const baseAlpha = isLight ? BASE_ALPHA_LIGHT : BASE_ALPHA;
+        const alpha = baseAlpha * REST_ALPHA_MUL + e * (0.5 + baseAlpha * (1 - REST_ALPHA_MUL)) * (m >= 0 ? 1 : 0.3);
         // resting dots are a touch smaller; they grow to full DOT_R as the wave energy rises
         const radius = DOT_R * (REST_SCALE + (1 - REST_SCALE) * e);
         ctx.fillStyle = `rgba(${cr},${cg},${cb},${alpha})`;
