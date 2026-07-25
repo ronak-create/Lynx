@@ -23,6 +23,25 @@ import { useHighlight } from "@/stores/highlight";
 const TABS = ["Dashboard", "Graph", "Documentary", "Notes", "Careers"] as const;
 type Tab = (typeof TABS)[number];
 
+// a compact tab switcher used inside each split-screen pane's header
+function PaneTabs({ value, onChange }: { value: Tab; onChange: (t: Tab) => void }) {
+  return (
+    <div className="mb-2 flex shrink-0 gap-0.5 rounded-lg border border-[var(--border)] bg-[var(--panel-2)] p-0.5">
+      {TABS.map((t) => (
+        <button
+          key={t}
+          onClick={() => onChange(t)}
+          className={`press flex-1 rounded-md px-2 py-1 text-[11px] font-medium ${
+            value === t ? "bg-[var(--accent-soft)] text-[var(--accent)]" : "text-[var(--muted)] hover:text-[var(--text-strong)]"
+          }`}
+        >
+          {t}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export default function ResearchPage() {
   const { jobId } = useParams<{ jobId: string }>();
   const router = useRouter();
@@ -175,23 +194,6 @@ export default function ResearchPage() {
     if (t === "Careers") return <CareersView state={state.categories.careers} running={running} />;
     return null;
   };
-
-  // a compact tab switcher used inside each split pane's header
-  const PaneTabs = ({ value, onChange }: { value: Tab; onChange: (t: Tab) => void }) => (
-    <div className="mb-2 flex shrink-0 gap-0.5 rounded-lg border border-[var(--border)] bg-[var(--panel-2)] p-0.5">
-      {TABS.map((t) => (
-        <button
-          key={t}
-          onClick={() => onChange(t)}
-          className={`press flex-1 rounded-md px-2 py-1 text-[11px] font-medium ${
-            value === t ? "bg-[var(--accent-soft)] text-[var(--accent)]" : "text-[var(--muted)] hover:text-[var(--text-strong)]"
-          }`}
-        >
-          {t}
-        </button>
-      ))}
-    </div>
-  );
 
   return (
     <main className="flex h-screen flex-col overflow-hidden px-5 py-4">
