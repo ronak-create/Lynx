@@ -46,9 +46,39 @@ import { JobLiveState } from "@/hooks/useJobEvents";
 import { Sparkline } from "./Sparkline";
 import { MediaPreview } from "./MediaPreview";
 import { SitePreview } from "./SitePreview";
+import { FinancialGrowth } from "./FinancialGrowth";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Payload = Record<string, any>;
+
+/* Best-effort source linking for SWOT bullets: the synthesis payload gives plain strings, but
+   many points echo a real news/community headline we already fetched. Match on significant-word
+   overlap and only link when the overlap is strong, so points with no real source stay plain. */
+type Src = { title?: string; url?: string };
+const STOP = new Set(
+  "the a an and or of to in on for with by from as at is are was were be been being this that these those it its their our your has have had will would can could should may might not no more most over under into out up down about after before recent over into their they them company".split(
+    " ",
+  ),
+);
+function sigTokens(s: string): string[] {
+  return (s.toLowerCase().match(/[a-z0-9]+/g) ?? []).filter((w) => w.length > 3 && !STOP.has(w));
+}
+function matchSource(text: string, sources: Src[]): Src | null {
+  const t = new Set(sigTokens(text));
+  if (t.size === 0) return null;
+  let best: Src | null = null;
+  let bestScore = 0;
+  for (const s of sources) {
+    if (!s.title || !s.url) continue;
+    let score = 0;
+    for (const w of sigTokens(s.title)) if (t.has(w)) score++;
+    if (score > bestScore) {
+      bestScore = score;
+      best = s;
+    }
+  }
+  return bestScore >= 2 ? best : null;
+}
 
 /* The founded date arrives as an ISO-ish string ("1975-04-04", or Wikidata year-precision
    "2010-00-00"). Show a full date as DD/MM/YYYY (with a format note); fall back to whatever
@@ -256,7 +286,7 @@ function Section({ label, children }: { label: string; children: React.ReactNode
 
 /* Executive Summary: scorecard tiles + SWOT quadrants + merged timeline, from the synthesis
    agent. Stays hidden until it arrives (it completes last) to keep the Snapshot clean. */
-function SynthesisCard({ state }: { state?: { status: string; payload: Payload } }) {
+function SynthesisCard({ state, sources = [] }: { state?: { status: string; payload: Payload }; sources?: Src[] }) {
   const [collapsed, setCollapsed] = useState(false);
   if (state == null || state.status === "failed") return null;
   const p = state.payload;
@@ -309,12 +339,30 @@ function SynthesisCard({ state }: { state?: { status: string; payload: Payload }
                 {q.items.length === 0 ? (
                   <li className="text-[12px] text-[var(--faint)]">—</li>
                 ) : (
-                  q.items.map((it: string, i: number) => (
-                    <li key={i} className="flex gap-1.5 text-[12px] leading-snug text-[var(--text)]">
-                      <span className="text-[var(--accent)]">–</span>
-                      {it}
-                    </li>
-                  ))
+                  q.items.map((it: string, i: number) => {
+                    const src = matchSource(String(it), sources);
+                    return (
+                      <li key={i} className="flex gap-1.5 text-[12px] leading-snug text-[var(--text)]">
+                        <span className="text-[var(--accent)]">–</span>
+                        {src ? (
+                          <a
+                            href={src.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            title={src.title}
+                            className="group inline-flex items-start gap-0.5 hover:text-[var(--accent)]"
+                          >
+                            <span className="underline decoration-[var(--accent-line)] decoration-dotted underline-offset-2">
+                              {it}
+                            </span>
+                            <ArrowUpRight weight="bold" className="mt-0.5 h-3 w-3 shrink-0 text-[var(--accent)] opacity-70" />
+                          </a>
+                        ) : (
+                          it
+                        )}
+                      </li>
+                    );
+                  })
                 )}
               </ul>
             </div>
@@ -397,10 +445,17 @@ export function DashboardGrid({
   categories: JobLiveState["categories"];
   running?: boolean;
 }) {
+  // headlines already gathered by the run — used to link SWOT bullets back to a real source
+  const swotSources: Src[] = [
+    ...(categories.news?.payload?.articles ?? []),
+    ...(categories.news?.payload?.hn_stories ?? []),
+    ...(categories.social?.payload?.posts ?? []),
+  ].map((a: Payload) => ({ title: a.title, url: a.url ?? a.source_url }));
+
   return (
     <RunContext.Provider value={{ running }}>
     <div className="flex flex-col gap-7">
-      <SynthesisCard state={categories.synthesis} />
+      <SynthesisCard state={categories.synthesis} sources={swotSources} />
       <Section label="Snapshot">
       <CardShell
         title="Overview"
@@ -562,6 +617,14 @@ export function DashboardGrid({
       />
       </Section>
       <Section label="Financials & funding">
+      {(categories.financials || categories.funding) && (
+        <Card title="Financial growth" icon={TrendUp}>
+          <FinancialGrowth
+            financials={categories.financials?.payload}
+            funding={categories.funding?.payload}
+          />
+        </Card>
+      )}
       <CardShell
         title="Financials"
         icon={Bank}

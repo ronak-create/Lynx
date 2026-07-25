@@ -7,6 +7,7 @@ import { useJobEvents } from "@/hooks/useJobEvents";
 import { api } from "@/lib/api";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { GithubButton } from "@/components/GithubButton";
+import { DocsLink } from "@/components/DocsLink";
 import { ProgressRail } from "@/components/ProgressRail";
 import { DashboardGrid } from "@/components/cards";
 import { CompanyLogo } from "@/components/CompanyLogo";
@@ -15,9 +16,10 @@ import { CareersView } from "@/components/CareersView";
 import { GraphView } from "@/components/GraphView";
 import { NodePanel } from "@/components/NodePanel";
 import { DocumentaryView } from "@/components/DocumentaryView";
+import { NotesView } from "@/components/NotesView";
 import { useHighlight } from "@/stores/highlight";
 
-const TABS = ["Dashboard", "Graph", "Documentary", "Careers"] as const;
+const TABS = ["Dashboard", "Graph", "Documentary", "Notes", "Careers"] as const;
 type Tab = (typeof TABS)[number];
 
 export default function ResearchPage() {
@@ -134,6 +136,7 @@ export default function ResearchPage() {
           )}
           Refresh
         </button>
+        <DocsLink className="hidden h-[30px] !py-0 lg:flex" />
         <GithubButton className="h-[30px] !py-0" />
         <ThemeToggle />
       </header>
@@ -197,6 +200,7 @@ export default function ResearchPage() {
             ))}
           {tab === "Graph" && <GraphView jobId={jobId} />}
           {tab === "Documentary" && <DocumentaryView jobId={jobId} running={running} />}
+          {tab === "Notes" && <NotesView jobId={jobId} entityName={state.entity?.name} />}
           {tab === "Careers" && <CareersView state={state.categories.careers} running={running} />}
         </div>
         {selectedEntityId && (tab === "Graph" || tab === "Documentary") && (
@@ -210,7 +214,13 @@ export default function ResearchPage() {
             >
               <div className="h-10 w-1 rounded-full bg-[var(--border)] transition-colors group-hover:bg-[var(--accent-line)]" />
             </div>
-            <NodePanel key={selectedEntityId} width={panelWidth} news={newsItems} />
+            <NodePanel
+              key={selectedEntityId}
+              width={panelWidth}
+              news={newsItems}
+              companyName={state.entity?.name}
+              companyDomain={logoDomain}
+            />
           </>
         )}
       </div>

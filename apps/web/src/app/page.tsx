@@ -9,6 +9,7 @@ import { useSettings } from "@/stores/settings";
 import { SettingsPanel } from "@/components/SettingsPanel";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { GithubButton } from "@/components/GithubButton";
+import { DocsLink } from "@/components/DocsLink";
 import SwarmWave, { SwarmHandle } from "@/components/SwarmWave";
 
 export default function SearchPage() {
@@ -85,6 +86,7 @@ export default function SearchPage() {
     <main className="flex min-h-[100dvh] flex-col items-center px-6 pt-[17vh]">
       <SwarmWave ref={swarmRef} />
       <div className="fixed top-5 right-5 z-20 flex items-center gap-2">
+        <DocsLink className="hidden sm:flex" />
         <GithubButton />
         <ThemeToggle />
       </div>

@@ -9,6 +9,8 @@
 
 *Named for the lynx — proverbially sharp-sighted; the tool's whole job is to see everything about a business at a glance.*
 
+📖 **[Read the full docs on DeepWiki →](https://deepwiki.com/ronak-create/Lynx)**
+
 Type a company name (or paste a URL) → 15 research agents fan out across free
 data sources → results appear four ways:
 

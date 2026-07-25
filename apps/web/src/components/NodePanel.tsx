@@ -5,14 +5,26 @@ import ReactMarkdown from "react-markdown";
 import { X, Sparkle, ArrowSquareOut, ArrowRight, ArrowLeft } from "@phosphor-icons/react";
 import { api, NODE_COLORS } from "@/lib/api";
 import { useHighlight } from "@/stores/highlight";
+import { NodeImages } from "./NodeImages";
 
 type NewsItem = { title: string; url?: string; date?: string };
 
-export function NodePanel({ width, news = [] }: { width?: number; news?: NewsItem[] }) {
+export function NodePanel({
+  width,
+  news = [],
+  companyName,
+  companyDomain,
+}: {
+  width?: number;
+  news?: NewsItem[];
+  companyName?: string;
+  companyDomain?: string | null;
+}) {
   const { selectedEntityId, setSelected } = useHighlight();
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [analyzed, setAnalyzed] = useState(false); // related images load only after Analyze is clicked
 
   const { data: entity } = useQuery({
     queryKey: ["entity", selectedEntityId],
@@ -24,6 +36,7 @@ export function NodePanel({ width, news = [] }: { width?: number; news?: NewsIte
 
   const runAnalysis = async () => {
     setAnalyzing(true);
+    setAnalyzed(true); // reveal + start loading related images now
     setAnalysisError(null);
     try {
       const res = await api.analyze(selectedEntityId);
@@ -74,6 +87,10 @@ export function NodePanel({ width, news = [] }: { width?: number; news?: NewsIte
       </div>
 
       {entity?.summary && <p className="text-[13px] leading-relaxed text-[var(--muted)]">{entity.summary.slice(0, 400)}</p>}
+
+      {analyzed && (
+        <NodeImages name={entity?.name} claims={entity?.claims} companyName={companyName} companyDomain={companyDomain} />
+      )}
 
       {mentions.length > 0 && (
         <div>

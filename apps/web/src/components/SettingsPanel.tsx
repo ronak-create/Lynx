@@ -13,6 +13,7 @@ const KEY_HINT: Record<string, { placeholder: string; note?: string }> = {
   cerebras: { placeholder: "csk-…" },
   openrouter: { placeholder: "sk-or-…" },
   ollama: { placeholder: "http://localhost:11434", note: "Base URL, not a secret." },
+  firecrawl: { placeholder: "fc-…", note: "Crawler fallback for JS-heavy pages." },
 };
 
 export function SettingsPanel() {
@@ -26,6 +27,40 @@ export function SettingsPanel() {
   const allCats = config.categories.map((c) => c.id);
   // providers that actually take a key/URL — "auto" and "none" don't
   const keyProviders = config.llm_providers.filter((p) => p.id !== "auto" && p.id !== "none");
+
+  const renderField = (id: string, label: string) => {
+    const hint = KEY_HINT[id] ?? { placeholder: "API key" };
+    const shown = reveal[id];
+    const value = keys[id] ?? "";
+    return (
+      <label key={id} className="block">
+        <span className="mb-1 flex items-center gap-1.5 text-[12px] text-[var(--text)]">
+          {label}
+          {value && <Check weight="bold" className="h-3 w-3 text-[var(--accent)]" />}
+        </span>
+        <div className="relative">
+          <input
+            type={shown ? "text" : "password"}
+            value={value}
+            onChange={(e) => setKey(id, e.target.value)}
+            placeholder={hint.placeholder}
+            autoComplete="off"
+            spellCheck={false}
+            className="panel w-full py-2 pr-10 pl-3 font-mono text-[12px] text-[var(--text)] outline-none placeholder:text-[var(--faint)] focus:border-[var(--accent-line)]"
+          />
+          <button
+            type="button"
+            onClick={() => setReveal((r) => ({ ...r, [id]: !r[id] }))}
+            aria-label={shown ? "Hide" : "Show"}
+            className="press absolute top-1/2 right-2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded text-[var(--faint)] hover:text-[var(--text-strong)]"
+          >
+            {shown ? <EyeSlash weight="bold" className="h-4 w-4" /> : <Eye weight="bold" className="h-4 w-4" />}
+          </button>
+        </div>
+        {hint.note && <span className="mt-1 block text-[10px] text-[var(--faint)]">{hint.note}</span>}
+      </label>
+    );
+  };
 
   return (
     <div className="panel relative mt-3 w-full max-w-xl p-4 text-sm">
@@ -126,39 +161,14 @@ export function SettingsPanel() {
             </div>
 
             <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pr-1">
-              {keyProviders.map((p) => {
-                const hint = KEY_HINT[p.id] ?? { placeholder: "API key" };
-                const shown = reveal[p.id];
-                const value = keys[p.id] ?? "";
-                return (
-                  <label key={p.id} className="block">
-                    <span className="mb-1 flex items-center gap-1.5 text-[12px] text-[var(--text)]">
-                      {p.label}
-                      {value && <Check weight="bold" className="h-3 w-3 text-[var(--accent)]" />}
-                    </span>
-                    <div className="relative">
-                      <input
-                        type={shown ? "text" : "password"}
-                        value={value}
-                        onChange={(e) => setKey(p.id, e.target.value)}
-                        placeholder={hint.placeholder}
-                        autoComplete="off"
-                        spellCheck={false}
-                        className="panel w-full py-2 pr-10 pl-3 font-mono text-[12px] text-[var(--text)] outline-none placeholder:text-[var(--faint)] focus:border-[var(--accent-line)]"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setReveal((r) => ({ ...r, [p.id]: !r[p.id] }))}
-                        aria-label={shown ? "Hide" : "Show"}
-                        className="press absolute top-1/2 right-2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded text-[var(--faint)] hover:text-[var(--text-strong)]"
-                      >
-                        {shown ? <EyeSlash weight="bold" className="h-4 w-4" /> : <Eye weight="bold" className="h-4 w-4" />}
-                      </button>
-                    </div>
-                    {hint.note && <span className="mt-1 block text-[10px] text-[var(--faint)]">{hint.note}</span>}
-                  </label>
-                );
-              })}
+              {keyProviders.map((p) => renderField(p.id, p.label))}
+              {/* non-LLM data-source keys */}
+              <div className="mt-1 border-t border-[var(--border)] pt-3">
+                <span className="mb-2 block text-[10px] font-semibold tracking-wider text-[var(--muted)] uppercase">
+                  Data source
+                </span>
+                {renderField("firecrawl", "Firecrawl")}
+              </div>
             </div>
 
             {/* save choice + terms — pinned footer, always visible */}
