@@ -43,7 +43,7 @@ const PULSE_LIFE = 1.7; // s until it fades out
 const PULSE_WIDTH = 60; // ring thickness
 const PULSE_DISP = 15; // px outward shove at the ring
 // pointer
-const POINTER_R = 165; // influence radius (wider halo around the cursor)
+const POINTER_R = 128; // influence radius (halo around the cursor)
 const POINTER_PUSH = 24; // px repulsion at the pointer
 const POINTER_EASE = 0.085; // how fast the halo catches up to the cursor — lower = more trailing lag
 const REFLECT_R = 230; // radius around the cursor where waves appear to bounce off it
@@ -54,8 +54,8 @@ const MOTION_SCALE = 22; // px/frame of travel that maps to full ripple intensit
 const MOTION_RISE = 0.4; // how fast the ripple spins up as you start moving
 const MOTION_FALL = 0.09; // how fast it settles once you stop (lower = longer, smoother fade)
 // comet trail: recent cursor positions each leave a short-lived disturbance behind the pointer
-const TRAIL_MAX = 16; // most trail points kept
-const TRAIL_LIFE = 0.55; // s each trail point keeps nudging the field
+const TRAIL_MAX = 30; // most trail points kept
+const TRAIL_LIFE = 0.95; // s each trail point keeps nudging the field
 const TRAIL_R = 95; // px influence radius of a trail point
 const TRAIL_DISP = 11; // px outward push at a trail point
 const TRAIL_MIN_DIST = 8; // px the cursor must travel before dropping a new trail point

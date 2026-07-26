@@ -20,7 +20,7 @@ import {
   ShieldCheck,
   SealCheck,
   WarningCircle,
-  Gauge,
+  ClipboardText,
   Clock,
   StackSimple,
   Briefcase,
@@ -35,6 +35,7 @@ import {
   TelegramLogo,
   RedditLogo,
   LinkSimple,
+  EnvelopeSimple,
   Minus,
   Plus,
   Heart,
@@ -303,7 +304,7 @@ function SynthesisCard({ state, sources = [] }: { state?: { status: string; payl
     <section className="panel rise flex flex-col p-5">
       <div className="flex items-center gap-2">
         <h3 className="flex items-center gap-2 text-[11px] font-semibold tracking-[0.14em] text-[var(--muted)] uppercase">
-          <Gauge weight="duotone" className="h-4 w-4 text-[var(--accent)]" />
+          <ClipboardText weight="duotone" className="h-4 w-4 text-[var(--accent)]" />
           Executive Summary
         </h3>
         <MinimizeButton collapsed={collapsed} onClick={() => setCollapsed((c) => !c)} />
@@ -509,15 +510,15 @@ function ProductTile({ query, label, href }: { query: string; label: string; hre
   const show = img && !failed;
   const inner = (
     <>
-      <div className="flex h-[84px] w-[84px] items-center justify-center overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--panel-2)] transition group-hover:border-[var(--accent-line)]">
+      <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--panel-2)] transition group-hover:border-[var(--accent-line)]">
         {show ? (
           // eslint-disable-next-line @next/next/no-img-element -- external host (Wikipedia)
           <img src={img} alt={label} loading="lazy" onError={() => setFailed(true)} className="h-full w-full object-cover" />
         ) : (
-          <Package weight="duotone" className="h-7 w-7 text-[var(--faint)]" />
+          <Package weight="duotone" className="h-6 w-6 text-[var(--faint)]" />
         )}
       </div>
-      <span className="w-[84px] truncate text-center text-[11px] text-[var(--text)]" title={label}>
+      <span className="w-16 truncate text-center text-[11px] text-[var(--text)]" title={label}>
         {label}
       </span>
     </>
@@ -689,6 +690,101 @@ function RecentUpdates({ state }: { state?: { status: string; payload: Payload }
             ))}
       </div>
     </section>
+  );
+}
+
+/* One person in the Key People card. Clicking the row expands a full-width dropdown with the
+   person's REAL social profile links (found by the people agent's enrichment pass) and email.
+   Only profiles that were actually found are shown — no icon when we couldn't find one. The row
+   is controlled by the parent so opening one collapses any other (single-open accordion). */
+function PersonRow({ person, open, onToggle }: { person: Payload; open: boolean; onToggle: () => void }) {
+  const name = String(person.name);
+  const role = String(person.role ?? "").replace(/_/g, " ");
+  const profile = (person.wikidata_url ?? person.url) as string | undefined;
+  const email = (person.email as string | undefined) || undefined;
+  const socials: { Icon: Icon; label: string; href: string }[] = [
+    ...(person.linkedin ? [{ Icon: LinkedinLogo, label: "LinkedIn", href: String(person.linkedin) }] : []),
+    ...(person.twitter || person.x ? [{ Icon: XLogo, label: "X", href: String(person.twitter || person.x) }] : []),
+    ...(person.github ? [{ Icon: GithubLogo, label: "GitHub", href: String(person.github) }] : []),
+    ...(profile ? [{ Icon: LinkSimple, label: "Profile", href: profile }] : []),
+  ];
+
+  return (
+    <li className="py-1.5 first:pt-0 last:pb-0">
+      <button
+        onClick={onToggle}
+        className="press flex w-full items-center justify-between gap-2 text-left"
+        aria-expanded={open}
+      >
+        <span className="flex min-w-0 items-center gap-2.5">
+          <PersonAvatar name={name} size={30} />
+          <span className="truncate text-[var(--text)]">{name}</span>
+        </span>
+        <span className="shrink-0 text-xs text-[var(--muted)]">{role}</span>
+      </button>
+      {/* grid-rows 0fr→1fr gives a smooth eased height transition on open/close */}
+      <div
+        className={`grid transition-all duration-300 ease-in-out ${
+          open ? "mt-2 grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+        }`}
+      >
+        <div className="overflow-hidden">
+          <div className="flex w-full flex-col gap-2.5 rounded-lg border border-[var(--border)] px-3 py-2.5">
+            {socials.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                {socials.map((s) => (
+                  <a
+                    key={s.label}
+                    href={s.href}
+                    target="_blank"
+                    rel="noreferrer"
+                    title={s.label}
+                    aria-label={s.label}
+                    className="press flex h-7 w-7 items-center justify-center rounded-md border border-[var(--accent-line)] text-[var(--accent)] transition-colors hover:bg-[var(--accent-soft)]"
+                  >
+                    <s.Icon weight="fill" className="h-3.5 w-3.5" />
+                  </a>
+                ))}
+              </div>
+            )}
+            <div className="flex items-center gap-1.5 text-xs">
+              <EnvelopeSimple weight="fill" className="h-3.5 w-3.5 shrink-0 text-[var(--accent)]" />
+              {email ? (
+                <a href={`mailto:${email}`} className="truncate text-[var(--text)] hover:text-[var(--accent)]">
+                  {email}
+                </a>
+              ) : (
+                <span className="text-[var(--faint)]">No public email found</span>
+              )}
+            </div>
+            {socials.length === 0 && !email && (
+              <span className="text-xs text-[var(--faint)]">No public profiles found</span>
+            )}
+          </div>
+        </div>
+      </div>
+    </li>
+  );
+}
+
+/* Key People list — single-open accordion: opening one row collapses whichever was open. */
+function PeopleList({ people }: { people: Payload[] }) {
+  const [openKey, setOpenKey] = useState<string | null>(null);
+  if (people.length === 0) return <p className="text-[var(--muted)]">No structured data found</p>;
+  return (
+    <ul className="flex flex-col divide-y divide-[var(--border)] text-sm">
+      {people.slice(0, 12).map((person) => {
+        const key = String(person.name) + String(person.role);
+        return (
+          <PersonRow
+            key={key}
+            person={person}
+            open={openKey === key}
+            onToggle={() => setOpenKey((k) => (k === key ? null : key))}
+          />
+        );
+      })}
+    </ul>
   );
 }
 
@@ -1098,29 +1194,7 @@ export function DashboardGrid({
         title="Key People"
         icon={Users}
         state={categories.people}
-        render={(p) => (
-          <ul className="flex flex-col divide-y divide-[var(--border)] text-sm">
-            {(p.people ?? []).slice(0, 12).map((person: Payload) => {
-              const href = person.wikidata_url ?? person.url;
-              return (
-                <li key={person.name + person.role} className="flex items-center justify-between gap-2 py-1.5 first:pt-0 last:pb-0">
-                  <span className="flex min-w-0 items-center gap-2.5">
-                    <PersonAvatar name={String(person.name)} size={30} />
-                    {href ? (
-                      <a href={href} target="_blank" rel="noreferrer" className="truncate text-[var(--text)] hover:text-[var(--text-strong)]">
-                        {person.name}
-                      </a>
-                    ) : (
-                      <span className="truncate text-[var(--text)]">{person.name}</span>
-                    )}
-                  </span>
-                  <span className="shrink-0 text-xs text-[var(--muted)]">{String(person.role).replace(/_/g, " ")}</span>
-                </li>
-              );
-            })}
-            {(p.people ?? []).length === 0 && <p className="text-[var(--muted)]">No structured data found</p>}
-          </ul>
-        )}
+        render={(p) => <PeopleList people={(p.people ?? []) as Payload[]} />}
       />
       <CardShell
         title="Products & Services"

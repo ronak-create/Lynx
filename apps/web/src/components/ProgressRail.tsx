@@ -74,9 +74,14 @@ export function ProgressRail({
     <aside
       aria-hidden={collapsed}
       className={`panel flex min-h-0 shrink-0 flex-col self-stretch overflow-hidden transition-all duration-300 ease-in-out ${
-        collapsed ? "w-0 border-0 p-0 opacity-0" : "w-64 p-1.5 opacity-100"
+        collapsed ? "w-2.5" : "w-64"
       }`}
     >
+      <div
+        className={`flex min-h-0 w-64 flex-1 flex-col p-1.5 transition-[opacity,transform] duration-300 ease-in-out ${
+          collapsed ? "pointer-events-none -translate-x-3 opacity-0" : "translate-x-0 opacity-100"
+        }`}
+      >
       <div className="flex items-center justify-between px-2.5 pt-1.5 pb-2">
         <h3 className="text-[11px] font-semibold tracking-[0.14em] text-[var(--muted)] uppercase">
           Research agents
@@ -131,15 +136,16 @@ export function ProgressRail({
       </ul>
       <div className="mt-auto flex items-center justify-between gap-2 border-t border-[var(--panel-2)] px-2.5 pt-2 pb-1">
         <a
-          href="https://github.com/ronak-create/Lynx"
+          href="https://github.com/ronak-create/Lynx/blob/main/LICENSE"
           target="_blank"
           rel="noreferrer"
           className="press flex items-center gap-1.5 text-[11px] font-medium text-[var(--muted)] hover:text-[var(--text-strong)]"
         >
           <GithubLogo weight="fill" className="h-3.5 w-3.5" />
-          Lynx
+          MIT License
         </a>
-        <span className="text-[10px] text-[var(--faint)]">MIT · © 2026</span>
+        <span className="text-[10px] text-[var(--faint)]">© 2026</span>
+      </div>
       </div>
     </aside>
   );

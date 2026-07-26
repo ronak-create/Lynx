@@ -97,7 +97,7 @@ export function RecentResearch({ recent }: { recent: Run[] }) {
               Compare
             </Link>
           </div>
-          <ul className="panel divide-y divide-[var(--border)] overflow-hidden">
+          <ul className="panel divide-y divide-[var(--border)]">
             {visible.map((r) => (
               <li
                 key={r.job_id}
@@ -113,9 +113,9 @@ export function RecentResearch({ recent }: { recent: Run[] }) {
                   <span>
                     {new Date(r.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
                   </span>
-                  <span className="capitalize transition-opacity group-hover:opacity-0">{r.status}</span>
+                  <span className="capitalize">{r.status}</span>
                 </span>
-                {/* floating delete — appears on hover over the row's right edge */}
+                {/* delete — sits outside the row on the right, always visible, red */}
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -123,7 +123,7 @@ export function RecentResearch({ recent }: { recent: Run[] }) {
                   }}
                   aria-label="Delete this research"
                   title="Delete"
-                  className="press absolute top-1/2 right-2.5 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md border border-[var(--border)] bg-[var(--panel-2)] text-[var(--faint)] opacity-0 transition group-hover:opacity-100 hover:border-[var(--neg-line,var(--border-strong))] hover:text-[var(--neg,var(--text-strong))]"
+                  className="press absolute top-1/2 -right-10 flex h-7 w-7 -translate-y-1/2 items-center justify-center text-[var(--neg)]"
                 >
                   <Trash weight="bold" className="h-3.5 w-3.5" />
                 </button>

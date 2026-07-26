@@ -7,7 +7,15 @@ Layers, hit one at a time in descending authority (see [[layers]]):
      Wikidata or their own site; find them in press snippets, then LLM-extract.
 
 Every person is deduped by name across layers (first/highest-authority mention wins), so the
-same founder never shows twice, and each rung's outcome is reported to the dashboard."""
+same founder never shows twice, and each rung's outcome is reported to the dashboard.
+
+After the team is assembled, a lightweight social-enrichment pass web-searches each person and
+regex-extracts their ACTUAL profile URLs (LinkedIn /in/, X/Twitter, GitHub) and a plausible
+email from the result set — real handles only, so the dashboard links straight to their profile
+instead of a search page. Anything not found is simply left off (the UI hides missing icons)."""
+import asyncio
+import re
+
 from pydantic import BaseModel, Field
 
 from app.agents.base import AgentContext
@@ -20,6 +28,57 @@ from app.sources.layers import Deduper, LayerTracker
 category = "people"
 
 ROLE_EDGE = {"founder": "FOUNDED_BY", "ceo": "LED_BY", "board_member": "LED_BY"}
+
+# --- social enrichment: patterns for real profile URLs + reserved (non-profile) handles ---
+_LINKEDIN_RE = re.compile(r"https?://[^\s\"'<>]*linkedin\.com/in/[A-Za-z0-9\-_%]+", re.I)
+_TWITTER_RE = re.compile(r"https?://(?:www\.)?(?:twitter|x)\.com/([A-Za-z0-9_]{2,15})", re.I)
+_GITHUB_RE = re.compile(r"https?://(?:www\.)?github\.com/([A-Za-z0-9][A-Za-z0-9\-]{0,38})", re.I)
+_EMAIL_RE = re.compile(r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}")
+_TW_RESERVED = {"home", "search", "explore", "notifications", "messages", "i", "intent",
+                "share", "hashtag", "login", "signup", "about", "tos", "privacy", "settings", "compose"}
+_GH_RESERVED = {"features", "about", "pricing", "team", "enterprise", "login", "join", "marketplace",
+                "topics", "collections", "trending", "events", "sponsors", "settings", "orgs", "search",
+                "explore", "notifications", "new", "organizations", "site", "contact", "security", "readme"}
+
+
+async def _enrich_socials(ctx: AgentContext, out: list[dict], company: str) -> None:
+    """Best-effort: web-search each person and attach their real social profile URLs + email.
+    Deterministic (regex over the result set), so no hallucinated links; runs even without an LLM."""
+    sem = asyncio.Semaphore(3)  # keep concurrent DDG hits polite
+
+    async def one(person: dict) -> None:
+        name = str(person.get("name") or "")
+        if not name:
+            return
+        async with sem:
+            try:
+                results = await websearch.search(f"{name} {company} linkedin twitter github", limit=6)
+            except Exception:
+                return
+        text = " ".join(f"{r.url} {r.title} {r.description or ''}" for r in results)
+
+        li = _LINKEDIN_RE.search(text)
+        if li:
+            person["linkedin"] = li.group(0).rstrip("/")
+        tw = _TWITTER_RE.search(text)
+        if tw and tw.group(1).lower() not in _TW_RESERVED:
+            person["twitter"] = f"https://x.com/{tw.group(1)}"
+        gh = _GITHUB_RE.search(text)
+        if gh and gh.group(1).lower() not in _GH_RESERVED:
+            person["github"] = f"https://github.com/{gh.group(1)}"
+
+        # email: only accept one clearly tied to this person (name in local part) or the company domain
+        parts = name.lower().split()
+        first, last = (parts[0] if parts else ""), (parts[-1] if len(parts) > 1 else "")
+        domain = (ctx.root.get("domain") or "").lower()
+        for m in _EMAIL_RE.finditer(text):
+            e = m.group(0).lower()
+            local, _, dom = e.partition("@")
+            if (len(first) >= 3 and first in local) or (len(last) >= 3 and last in local) or (domain and domain in dom):
+                person["email"] = e
+                break
+
+    await asyncio.gather(*[one(p) for p in out[:10]])
 
 
 class TeamMember(BaseModel):
@@ -143,6 +202,15 @@ async def run(ctx: AgentContext) -> dict:
                     added += 1
             session.commit()
             tracker.hit("Web search", added)
+
+    # enrich the assembled team with real social profile URLs + email (best-effort, outside the
+    # DB session so long web searches don't hold the write lock)
+    if out:
+        ctx.progress(category, "Finding social profiles for the team")
+        try:
+            await _enrich_socials(ctx, out, ctx.root["name"])
+        except Exception:
+            pass  # enrichment is a nice-to-have; never fail the agent over it
 
     if out:
         ctx.emit("graph_delta", agent=category, payload={})
