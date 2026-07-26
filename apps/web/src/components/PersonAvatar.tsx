@@ -30,8 +30,18 @@ export function usePersonImage(name?: string) {
       const pages: any[] = Object.values(r?.query?.pages ?? {}).sort(
         (a: any, b: any) => (a.index ?? 99) - (b.index ?? 99),
       );
-      const withImg = pages.filter((p) => p?.thumbnail?.source);
-      // prefer a hit whose description reads like a person over a namesake company/place
+      // Only trust a photo from a page whose TITLE actually contains this person's name — a
+      // bare-name search otherwise returns the first image on any namesake/unrelated page (some
+      // other person entirely). Require first+last (or the sole token) to appear in the title.
+      const tokens = name!.trim().toLowerCase().split(/\s+/).filter((t) => t.length >= 2);
+      const titleMatches = (title: string) => {
+        const t = title.toLowerCase();
+        return tokens.length >= 2
+          ? t.includes(tokens[0]) && t.includes(tokens[tokens.length - 1])
+          : tokens.length === 1 && t.includes(tokens[0]);
+      };
+      const withImg = pages.filter((p) => p?.thumbnail?.source && titleMatches(String(p.title ?? "")));
+      // among name-matching pages, prefer one whose description reads like a person (not a place/org)
       const best = withImg.find((p) => PERSON_DESC.test(String(p.description ?? ""))) ?? withImg[0];
       return (best?.thumbnail?.source as string | undefined) ?? null;
     },

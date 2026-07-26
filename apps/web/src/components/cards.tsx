@@ -487,36 +487,75 @@ function HideImg({ src, alt, className }: { src: string; alt: string; className:
 const SERVICE_RE =
   /\b(cloud|music|tv\+?|pay|care|arcade|fitness\+?|news\+?|one|subscription|service|support|premium|plus|bank|insurance|api|platform|saas|hosting|studio|assistant|search|ads?|maps|drive|mail|meet|photos|wallet|business|enterprise|analytics|console)\b/i;
 
-// a product/service tile with a Wikipedia preview image (company-qualified query), Package fallback
-function ProductTile({ query, label, href }: { query: string; label: string; href?: string }) {
+// a product/service tile: a verified Wikipedia image only when it's clearly THIS company's
+// product, otherwise the product name as a text chip (never a random stand-in image)
+// generic corporate words dropped when matching a company's *distinctive* tokens
+const _COMPANY_STOP = new Set(
+  "technology technologies tech inc llc ltd limited pvt private corp corporation company co solutions labs systems software group global services holdings ventures the and".split(
+    " ",
+  ),
+);
+function companyCore(company: string): string[] {
+  const toks = (company.toLowerCase().match(/[a-z0-9]+/g) ?? []).filter(
+    (t) => t.length >= 3 && !_COMPANY_STOP.has(t),
+  );
+  return toks.length ? toks : company.toLowerCase().match(/[a-z0-9]+/g) ?? [];
+}
+
+function ProductTile({ company, label, href }: { company: string; label: string; href?: string }) {
+  const query = company ? `${company} ${label}` : label;
   const { data: img } = useQuery({
     queryKey: ["wiki-thumb", query],
-    enabled: query.trim().length >= 2,
+    enabled: label.trim().length >= 2,
     staleTime: 1000 * 60 * 60,
     queryFn: async () => {
       const url =
         `https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*` +
-        `&generator=search&gsrsearch=${encodeURIComponent(query)}&gsrlimit=3` +
-        `&prop=pageimages&piprop=thumbnail&pithumbsize=200`;
+        `&generator=search&gsrsearch=${encodeURIComponent(query)}&gsrlimit=4` +
+        `&prop=pageimages|description&piprop=thumbnail&pithumbsize=200`;
       const r = await fetch(url).then((res) => res.json());
       const pages = (Object.values(r?.query?.pages ?? {}) as Payload[]).sort(
         (a, b) => ((a.index as number) ?? 99) - ((b.index as number) ?? 99),
       );
-      const withImg = pages.filter((pg) => pg?.thumbnail?.source);
-      return (withImg[0]?.thumbnail?.source as string | undefined) ?? null;
+      const nameToks = (String(label).toLowerCase().match(/[a-z0-9]+/g) ?? []).filter((t) => t.length >= 2);
+      const core = companyCore(company);
+      // Only accept an image when the page is clearly THIS company's product: its title contains
+      // the product name AND the company is named in the title/description. Otherwise return null
+      // so the product renders as text — never a random or merely related picture.
+      const match = pages.find((pg) => {
+        if (!pg?.thumbnail?.source) return false;
+        const title = String(pg.title ?? "").toLowerCase();
+        const desc = String(pg.description ?? "").toLowerCase();
+        const titleHasProduct = nameToks.length > 0 && nameToks.every((t) => title.includes(t));
+        const companyNamed = core.length === 0 || core.some((c) => title.includes(c) || desc.includes(c));
+        return titleHasProduct && companyNamed;
+      });
+      return (match?.thumbnail?.source as string | undefined) ?? null;
     },
   });
   const [failed, setFailed] = useState(false);
   const show = img && !failed;
+
+  // No verified image → show the product as plain text (a chip), never a stand-in picture.
+  if (!show) {
+    const chipClass =
+      "inline-block rounded-lg border border-[var(--border)] bg-[var(--panel-2)] px-2.5 py-1.5 text-xs text-[var(--text)] transition-colors";
+    return href ? (
+      <a href={href} target="_blank" rel="noreferrer" className="press group" title={label}>
+        <span className={`${chipClass} group-hover:border-[var(--accent-line)]`}>{label}</span>
+      </a>
+    ) : (
+      <span className={chipClass} title={label}>
+        {label}
+      </span>
+    );
+  }
+
   const inner = (
     <>
       <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--panel-2)] transition group-hover:border-[var(--accent-line)]">
-        {show ? (
-          // eslint-disable-next-line @next/next/no-img-element -- external host (Wikipedia)
-          <img src={img} alt={label} loading="lazy" onError={() => setFailed(true)} className="h-full w-full object-cover" />
-        ) : (
-          <Package weight="duotone" className="h-6 w-6 text-[var(--faint)]" />
-        )}
+        {/* eslint-disable-next-line @next/next/no-img-element -- external host (Wikipedia) */}
+        <img src={img} alt={label} loading="lazy" onError={() => setFailed(true)} className="h-full w-full object-cover" />
       </div>
       <span className="w-16 truncate text-center text-[11px] text-[var(--text)]" title={label}>
         {label}
@@ -535,15 +574,14 @@ function ProductTile({ query, label, href }: { query: string; label: string; hre
 function ProductsGrid({ products, company }: { products: Payload[]; company?: string }) {
   if (products.length === 0)
     return <p className="text-sm text-[var(--muted)]">No structured product data found</p>;
-  const q = (name: string) => (company ? `${company} ${name}` : name);
   const services = products.filter((p) => SERVICE_RE.test(String(p.name)));
   const goods = products.filter((p) => !SERVICE_RE.test(String(p.name)));
   const grid = (items: Payload[]) => (
-    <div className="flex flex-wrap gap-3">
+    <div className="flex flex-wrap items-start gap-3">
       {items.slice(0, 12).map((pr) => (
         <ProductTile
           key={String(pr.name)}
-          query={q(String(pr.name))}
+          company={company ?? ""}
           label={String(pr.name)}
           href={pr.source_url as string | undefined}
         />

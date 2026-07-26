@@ -40,6 +40,74 @@ _GH_RESERVED = {"features", "about", "pricing", "team", "enterprise", "login", "
                 "topics", "collections", "trending", "events", "sponsors", "settings", "orgs", "search",
                 "explore", "notifications", "new", "organizations", "site", "contact", "security", "readme"}
 
+# generic corporate suffixes/words to ignore when matching a company's *distinctive* tokens
+_COMPANY_STOP = {"technology", "technologies", "tech", "inc", "llc", "ltd", "limited", "pvt", "private",
+                 "corp", "corporation", "company", "co", "solutions", "labs", "systems", "software",
+                 "group", "global", "services", "holdings", "ventures", "the", "and"}
+
+
+def _company_core(company: str) -> list[str]:
+    """The distinctive tokens of a company name (drops generic suffixes like 'Technology'), used
+    to confirm a person genuinely co-occurs with THIS company and not a mere namesake."""
+    toks = re.findall(r"[a-z0-9]+", company.lower())
+    core = [t for t in toks if t not in _COMPANY_STOP and len(t) >= 3]
+    return core or toks
+
+
+def _wb(token: str) -> re.Pattern:
+    """Whole-word matcher — critical so 'Kesari' does NOT match inside 'KesariX' (the substring
+    bug that let a namesake pass verification)."""
+    return re.compile(rf"\b{re.escape(token)}\b", re.I)
+
+
+async def _is_associated(name: str, company: str, core: list[str]) -> bool:
+    """Confirm a person genuinely co-occurs with THIS company — guards against name-collision
+    false positives (a namesake matched only on a shared token, e.g. 'Ganesh Kesari' surfacing
+    for 'KesariX Technology'). Requires a single result that mentions BOTH the person's surname
+    and a distinctive company token as whole words. We never show a person we can't tie to the
+    company — showing false/made-up people is the one thing this tool must not do."""
+    parts = name.split()
+    last = parts[-1] if parts else ""
+    if len(last) < 3 or not core:
+        return False
+    try:
+        results = await websearch.search(f'"{name}" {company}', limit=6)
+    except Exception:
+        return False
+    last_re = _wb(last)
+    core_res = [_wb(c) for c in core]
+    for r in results:
+        blob = f"{r.title} {r.description or ''} {r.url}"
+        if last_re.search(blob) and any(cr.search(blob) for cr in core_res):
+            return True
+    return False
+
+
+async def _commit_verified(ctx: AgentContext, session, root_entity, members, dedup: Deduper,
+                           src_id: str, src_url: str | None, source: str, out: list[dict]) -> int:
+    """Clean → verify-association → persist. People that can't be tied to the company are dropped
+    (never created as entities/edges), so false positives reach neither the card nor the graph."""
+    candidates: list[tuple[str, str]] = []
+    for m in members:
+        cleaned = _clean(m, dedup)
+        if cleaned:
+            candidates.append(cleaned)
+    if not candidates:
+        return 0
+    core = _company_core(ctx.root["name"])
+    checks = await asyncio.gather(*[_is_associated(n, ctx.root["name"], core) for n, _ in candidates])
+    added = 0
+    for (name, role), ok in zip(candidates, checks):
+        if not ok or name.lower() in dedup:
+            continue
+        dedup.seen.add(name.lower())
+        prov = make_provenance(session, src_id, src_url, method="llm")
+        node = get_or_create_entity(session, "person", name, attrs={"role": role})
+        add_edge(session, root_entity, node, _edge_for(role), attrs={"role": role}, provenance=prov)
+        out.append({"name": name, "role": role, "url": src_url, "source": source})
+        added += 1
+    return added
+
 
 async def _enrich_socials(ctx: AgentContext, out: list[dict], company: str) -> None:
     """Best-effort: web-search each person and attach their real social profile URLs + email.
@@ -151,19 +219,12 @@ async def run(ctx: AgentContext) -> dict:
                 site[:8000],
                 Team,
             )
-            added = 0
-            for m in (team.people if team else []):
-                cleaned = _clean(m, dedup)
-                if not cleaned:
-                    continue
-                name, role = cleaned
-                dedup.seen.add(name.lower())
-                prov = make_provenance(session, "site", site_url, method="llm")
-                node = get_or_create_entity(session, "person", name, attrs={"role": role})
-                add_edge(session, root_entity, node, _edge_for(role),
-                         attrs={"role": role}, provenance=prov)
-                out.append({"name": name, "role": role, "url": site_url, "source": "site"})
-                added += 1
+            # even own-site extractions are verified: if the wrong site was resolved, its people
+            # must not surface as this company's team. Unverifiable names are dropped, not shown.
+            added = await _commit_verified(
+                ctx, session, root_entity, team.people if team else [],
+                dedup, "site", site_url, "site", out,
+            )
             session.commit()
             tracker.hit("Company site", added)
 
@@ -174,32 +235,28 @@ async def run(ctx: AgentContext) -> dict:
             tracker.skip("Web search", "needs an LLM provider")
         else:
             tracker.start("Web search", "Searching the web for the founding/leadership team")
-            results = await websearch.search(f"{ctx.root['name']} founders CEO leadership team", limit=6)
+            # quote the company so DDG matches the full name, not a shared token (e.g. "Kesari")
+            results = await websearch.search(f'"{ctx.root["name"]}" founders CEO leadership team', limit=6)
             text = "\n".join(f"{r.title}. {r.description or ''}" for r in results)
             src_url = results[0].url if results else None
             src_id = results[0].source_id if results else "web"
             added = 0
             if text.strip():
                 team = await ctx.llm.extract(
-                    f"From these search-result snippets about '{ctx.root['name']}', extract that "
-                    "company's founders and key executives — real named individuals with their "
-                    "role. Only include people clearly associated with THIS company; ignore "
-                    "investors, journalists, and unrelated names.",
+                    f"From these search-result snippets about '{ctx.root['name']}', extract ONLY "
+                    "people the snippets explicitly tie to THIS exact company as a founder or "
+                    "executive — the text must state their role AT this company. Do NOT include "
+                    "someone merely because their name resembles the company name, and ignore "
+                    "investors, journalists, analysts, and people from other companies. When in "
+                    "doubt, leave them out.",
                     text[:6000],
                     Team,
                 )
-                for m in (team.people if team else []):
-                    cleaned = _clean(m, dedup)
-                    if not cleaned:
-                        continue
-                    name, role = cleaned
-                    dedup.seen.add(name.lower())
-                    prov = make_provenance(session, src_id, src_url, method="llm")
-                    node = get_or_create_entity(session, "person", name, attrs={"role": role})
-                    add_edge(session, root_entity, node, _edge_for(role),
-                             attrs={"role": role}, provenance=prov)
-                    out.append({"name": name, "role": role, "url": src_url, "source": "web"})
-                    added += 1
+                # every web-derived name is association-verified before it's trusted
+                added = await _commit_verified(
+                    ctx, session, root_entity, team.people if team else [],
+                    dedup, src_id, src_url, "web", out,
+                )
             session.commit()
             tracker.hit("Web search", added)
 

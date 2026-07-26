@@ -1,8 +1,16 @@
 "use client";
-/* The entity's logo for the dashboard header. Tries DuckDuckGo's favicon service for the resolved
-   domain (never user-typed text) and falls back to a monogram tile if there's no domain or the
-   image fails to load. Kept small and dependency-free. */
-import { useState } from "react";
+/* The entity's logo for the dashboard header. We try hard to show a REAL logo, stepping through
+   a cascade of logo sources for the resolved domain (never user-typed text) and only falling back
+   to a monogram tile once every source fails or there's no domain:
+
+     1. unavatar.io      – aggregates the site's own logo + Clearbit + the company's social-media
+                           avatar (Twitter/GitHub/etc.), so it catches logos that live on socials
+     2. Clearbit         – high-quality brand logos by domain
+     3. Google favicon   – 128px, usually the site logo/mark
+     4. DuckDuckGo icon  – last-resort favicon
+
+   Each source advances to the next on load error; dependency-free. */
+import { useMemo, useState } from "react";
 
 function initial(name: string): string {
   const c = name.trim()[0];
@@ -18,26 +26,39 @@ export function CompanyLogo({
   domain?: string | null;
   size?: number;
 }) {
-  const [failed, setFailed] = useState(false);
-  const showImg = Boolean(domain) && !failed;
+  const sources = useMemo(
+    () =>
+      domain
+        ? [
+            `https://unavatar.io/${domain}?fallback=false`,
+            `https://logo.clearbit.com/${domain}`,
+            `https://www.google.com/s2/favicons?domain=${domain}&sz=128`,
+            `https://icons.duckduckgo.com/ip3/${domain}.ico`,
+          ]
+        : [],
+    [domain],
+  );
+  const [idx, setIdx] = useState(0);
+  const src = sources[idx]; // undefined once every source has failed → monogram
 
   return (
     <span
       className={`flex shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[var(--glass-border)] ${
-        showImg ? "bg-white" : "bg-[var(--accent-soft)]"
+        src ? "bg-white" : "bg-[var(--accent-soft)]"
       }`}
       style={{ width: size, height: size }}
       aria-hidden
     >
-      {showImg ? (
+      {src ? (
         // eslint-disable-next-line @next/next/no-img-element -- arbitrary external logo host
         <img
-          src={`https://icons.duckduckgo.com/ip3/${domain}.ico`}
+          key={src}
+          src={src}
           alt={`${name} logo`}
           width={size}
           height={size}
           loading="lazy"
-          onError={() => setFailed(true)}
+          onError={() => setIdx((i) => i + 1)}
           className="h-full w-full object-contain p-1"
         />
       ) : (
