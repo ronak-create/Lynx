@@ -729,7 +729,7 @@ function PersonRow({ person, open, onToggle }: { person: Payload; open: boolean;
         }`}
       >
         <div className="overflow-hidden">
-          <div className="flex w-full flex-col gap-2.5 rounded-lg border border-[var(--border)] px-3 py-2.5">
+          <div className="flex w-full flex-col gap-2.5 rounded-lg px-3 py-2.5">
             {socials.length > 0 && (
               <div className="flex flex-wrap items-center gap-1.5">
                 {socials.map((s) => (
