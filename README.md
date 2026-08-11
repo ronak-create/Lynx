@@ -23,8 +23,6 @@ Plus a **compare mode** (project two or more finished runs onto shared metric ro
 highlighted) and **realtime refresh** (pollable live quote + a diff banner of what changed
 since the previous run of the same entity).
 
-"Mirofish, but for researching businesses and digital products."
-
 ## Screenshots
 
 <p align="center">
