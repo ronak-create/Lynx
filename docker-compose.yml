@@ -28,6 +28,8 @@ services:
       args:
         # Baked into the browser bundle at build time — must be reachable from the user's browser.
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+        # Public origin of the site — canonical URLs, sitemap.xml, robots.txt.
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
     ports:
       - "3000:3000"
     depends_on:

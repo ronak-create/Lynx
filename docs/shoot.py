@@ -1,10 +1,15 @@
+"""Regenerate docs/screenshots/*.png against a locally running app (pnpm dev).
+
+    pip install playwright && playwright install chromium
+    LYNX_JOB=<a completed job id> python docs/shoot.py
+"""
 import os, time
 from playwright.sync_api import sync_playwright
 
 OUT = os.path.join(os.path.dirname(__file__), "screenshots")
 os.makedirs(OUT, exist_ok=True)
-BASE = "http://localhost:3000"
-JOB = "a836922b-77bd-47fa-8b2a-554007b10ad9"  # Anthropic run
+BASE = os.environ.get("LYNX_BASE", "http://localhost:3000")
+JOB = os.environ.get("LYNX_JOB", "a836922b-77bd-47fa-8b2a-554007b10ad9")  # a completed run
 VW, VH = 1512, 850
 
 def run():
@@ -55,6 +60,13 @@ def run():
         time.sleep(1.2)
         pg.screenshot(path=f"{OUT}/06-config-keys.png")
         print("config ok")
+
+        # 7-8. the public surfaces: docs and about
+        for name, path in (("07-docs", "/docs/architecture"), ("08-about", "/about")):
+            pg.goto(f"{BASE}{path}", wait_until="networkidle")
+            time.sleep(1)
+            pg.screenshot(path=f"{OUT}/{name}.png")
+            print(name, "ok")
 
         b.close()
 

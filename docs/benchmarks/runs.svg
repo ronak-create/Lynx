@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="216" viewBox="0 0 900 216" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" role="img">
+<text x="0" y="14" fill="#a9adbe" font-size="13" font-weight="600">End-to-end wall time per run</text>
+<text x="138" y="45" fill="#a9adbe" font-size="12" text-anchor="end">microsoft</text>
+<rect x="150" y="33" width="630.0" height="16" rx="3" fill="#8b7bff"/>
+<text x="788.0" y="46" fill="#8b8fa3" font-size="11" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">124.4s</text>
+<text x="150" y="60" fill="#8b8fa3" font-size="10">89 nodes · 97 edges · 1400 doc words (llm) · 46 citations</text>
+<text x="138" y="79" fill="#a9adbe" font-size="12" text-anchor="end">anthropic</text>
+<rect x="150" y="67" width="218.2" height="16" rx="3" fill="#8b7bff"/>
+<text x="376.2" y="80" fill="#8b8fa3" font-size="11" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">43.1s</text>
+<text x="150" y="94" fill="#8b8fa3" font-size="10">65 nodes · 84 edges · 866 doc words (llm) · 25 citations</text>
+<text x="138" y="113" fill="#a9adbe" font-size="12" text-anchor="end">duolingo</text>
+<rect x="150" y="101" width="287.9" height="16" rx="3" fill="#8b7bff"/>
+<text x="445.9" y="114" fill="#8b8fa3" font-size="11" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">56.8s</text>
+<text x="150" y="128" fill="#8b8fa3" font-size="10">12 nodes · 15 edges · 709 doc words (llm) · 16 citations</text>
+<text x="138" y="147" fill="#a9adbe" font-size="12" text-anchor="end">figma</text>
+<rect x="150" y="135" width="160.0" height="16" rx="3" fill="#8b7bff"/>
+<text x="318.0" y="148" fill="#8b8fa3" font-size="11" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">31.6s</text>
+<text x="150" y="162" fill="#8b8fa3" font-size="10">39 nodes · 60 edges · 1084 doc words (llm) · 17 citations</text>
+<text x="138" y="181" fill="#a9adbe" font-size="12" text-anchor="end">anthropic-no-llm</text>
+<rect x="150" y="169" width="92.2" height="16" rx="3" fill="#8b7bff"/>
+<text x="250.2" y="182" fill="#8b8fa3" font-size="11" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">18.2s</text>
+<text x="150" y="196" fill="#8b8fa3" font-size="10">56 nodes · 67 edges · 435 doc words (template) · 15 citations</text>
+</svg>

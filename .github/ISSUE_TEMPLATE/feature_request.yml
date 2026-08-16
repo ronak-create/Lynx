@@ -1,0 +1,33 @@
+name: Feature or source request
+description: Suggest a capability, a view, or a new data source
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to find out that Lynx can't tell you?
+      description: Describe the research question, not just the feature.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would you like it to do?
+
+  - type: input
+    id: source
+    attributes:
+      label: If this needs a new data source, which one?
+      description: A link to its API or docs helps a lot.
+
+  - type: dropdown
+    id: cost
+    attributes:
+      label: Is that source free?
+      description: The default research path must stay free and keyless; paid sources have to degrade to nothing when unconfigured.
+      options:
+        - "Free, no key"
+        - "Free tier with a key"
+        - "Paid"
+        - "Not applicable"

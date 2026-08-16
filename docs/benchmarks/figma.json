@@ -1,0 +1,261 @@
+{
+  "label": "figma",
+  "query": "https://figma.com",
+  "provider": "auto",
+  "llm_providers_configured": [
+    "groq",
+    "cerebras"
+  ],
+  "job_id": "de86ca35-d724-45fc-a5ad-52cac72a5eb4",
+  "started_at": "2026-08-16T02:15:22.079499+00:00",
+  "entity": "Figma",
+  "wall_seconds": 31.593,
+  "resolve_seconds": 0.156,
+  "agents": [
+    {
+      "category": "overview",
+      "start": 0.187,
+      "end": 0.187,
+      "seconds": 0.0,
+      "status": "completed"
+    },
+    {
+      "category": "profile",
+      "start": 0.187,
+      "end": 2.922,
+      "seconds": 2.735,
+      "status": "completed"
+    },
+    {
+      "category": "stock",
+      "start": 2.984,
+      "end": 3.0,
+      "seconds": 0.016,
+      "status": "completed"
+    },
+    {
+      "category": "financials",
+      "start": 3.0,
+      "end": 3.0,
+      "seconds": 0.0,
+      "status": "completed"
+    },
+    {
+      "category": "products",
+      "start": 3.0,
+      "end": 3.0,
+      "seconds": 0.0,
+      "status": "completed"
+    },
+    {
+      "category": "patents",
+      "start": 3.0,
+      "end": 3.687,
+      "seconds": 0.687,
+      "status": "completed"
+    },
+    {
+      "category": "web_presence",
+      "start": 3.0,
+      "end": 3.781,
+      "seconds": 0.781,
+      "status": "completed"
+    },
+    {
+      "category": "signals",
+      "start": 3.0,
+      "end": 4.203,
+      "seconds": 1.203,
+      "status": "completed"
+    },
+    {
+      "category": "competitors",
+      "start": 3.0,
+      "end": 5.234,
+      "seconds": 2.234,
+      "status": "completed"
+    },
+    {
+      "category": "legitimacy",
+      "start": 3.0,
+      "end": 5.328,
+      "seconds": 2.328,
+      "status": "completed"
+    },
+    {
+      "category": "careers",
+      "start": 3.0,
+      "end": 5.781,
+      "seconds": 2.781,
+      "status": "completed"
+    },
+    {
+      "category": "people",
+      "start": 3.0,
+      "end": 9.593,
+      "seconds": 6.593,
+      "status": "completed"
+    },
+    {
+      "category": "funding",
+      "start": 3.0,
+      "end": 16.531,
+      "seconds": 13.531,
+      "status": "completed"
+    },
+    {
+      "category": "social",
+      "start": 3.0,
+      "end": 18.203,
+      "seconds": 15.203,
+      "status": "completed"
+    },
+    {
+      "category": "news",
+      "start": 3.0,
+      "end": 18.843,
+      "seconds": 15.843,
+      "status": "completed"
+    },
+    {
+      "category": "synthesis",
+      "start": 18.859,
+      "end": 29.25,
+      "seconds": 10.391,
+      "status": "completed"
+    },
+    {
+      "category": "documentary",
+      "start": 18.859,
+      "end": 31.593,
+      "seconds": 12.734,
+      "status": "completed"
+    }
+  ],
+  "agents_completed": 17,
+  "agents_failed": 0,
+  "categories": {
+    "careers": {
+      "status": "completed",
+      "payload_bytes": 46786
+    },
+    "competitors": {
+      "status": "completed",
+      "payload_bytes": 349
+    },
+    "financials": {
+      "status": "completed",
+      "payload_bytes": 95
+    },
+    "funding": {
+      "status": "completed",
+      "payload_bytes": 87
+    },
+    "legitimacy": {
+      "status": "completed",
+      "payload_bytes": 1843
+    },
+    "news": {
+      "status": "completed",
+      "payload_bytes": 23562
+    },
+    "overview": {
+      "status": "completed",
+      "payload_bytes": 1038
+    },
+    "patents": {
+      "status": "completed",
+      "payload_bytes": 75
+    },
+    "people": {
+      "status": "completed",
+      "payload_bytes": 558
+    },
+    "products": {
+      "status": "completed",
+      "payload_bytes": 743
+    },
+    "profile": {
+      "status": "completed",
+      "payload_bytes": 853
+    },
+    "signals": {
+      "status": "completed",
+      "payload_bytes": 1037
+    },
+    "social": {
+      "status": "completed",
+      "payload_bytes": 5790
+    },
+    "stock": {
+      "status": "completed",
+      "payload_bytes": 69
+    },
+    "synthesis": {
+      "status": "completed",
+      "payload_bytes": 1831
+    },
+    "web_presence": {
+      "status": "completed",
+      "payload_bytes": 3798
+    }
+  },
+  "graph": {
+    "nodes": 39,
+    "edges": 60,
+    "node_types": {
+      "company": 20,
+      "person": 4,
+      "technology": 5,
+      "organization": 1,
+      "product": 7,
+      "industry": 1,
+      "event": 1
+    },
+    "edge_types": {
+      "MENTIONS": 3,
+      "CUSTOMER_OF": 24,
+      "INVESTED_IN": 1,
+      "COMPETES_WITH": 8,
+      "FOUNDED_BY": 1,
+      "USES_TECH": 10,
+      "INTEGRATES_WITH": 2,
+      "PARENT_OF": 1,
+      "MAKES": 5,
+      "SUPPLIES": 1,
+      "PARTICIPATED_IN": 1,
+      "LED_BY": 1,
+      "PARTNERED_WITH": 1,
+      "SUBSIDIARY_OF": 1
+    }
+  },
+  "documentary": {
+    "method": "llm",
+    "words": 1084
+  },
+  "layers": {
+    "total": 11,
+    "by_status": {
+      "empty": 3,
+      "hit": 5,
+      "skipped": 3
+    }
+  },
+  "provenance": {
+    "total": 17,
+    "by_source": {
+      "wikidata": 6,
+      "site": 4,
+      "firecrawl": 2,
+      "github": 2,
+      "gleif": 1,
+      "google_news": 1,
+      "legitimacy": 1
+    },
+    "by_method": {
+      "llm": 7,
+      "deterministic": 10
+    }
+  },
+  "events": 108
+}

@@ -25,6 +25,9 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/web ./apps/web
 ARG NEXT_PUBLIC_API_URL=http://localhost:8000
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+# Public origin of the site itself — canonical URLs, sitemap.xml, robots.txt.
+ARG NEXT_PUBLIC_SITE_URL=http://localhost:3000
+ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN pnpm --filter web build
 

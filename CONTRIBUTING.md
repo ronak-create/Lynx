@@ -26,6 +26,15 @@ cd apps/api && uv run pytest        # backend unit tests
 cd apps/web && pnpm exec tsc --noEmit && pnpm lint   # frontend typecheck + lint
 ```
 
+If your change could affect how long a run takes or how much it finds, re-run the benchmark and say
+what moved:
+
+```bash
+cd apps/api
+uv run python ../../docs/bench.py "Microsoft" --label microsoft
+uv run python ../../docs/bench_report.py        # regenerates the README's charts + summary
+```
+
 ## Architecture notes
 
 - **Adding a data source:** implement a module in `apps/api/src/app/sources/` that fetches and
@@ -44,3 +53,8 @@ cd apps/web && pnpm exec tsc --noEmit && pnpm lint   # frontend typecheck + lint
 - Only free data sources in the default path; paid/keyed sources must degrade gracefully when the
   key is absent.
 - Never commit secrets. `.env` is gitignored; put example keys only in `.env.example`.
+- User-facing documentation lives in the app itself, under `apps/web/src/app/docs/` — a new page is
+  a file there plus one entry in `apps/web/src/lib/docs-nav.ts`. Keep it accurate to the code;
+  outdated docs are worse than none.
+- Be excellent to each other: this project follows a [Code of Conduct](CODE_OF_CONDUCT.md).
+  Security problems go through [SECURITY.md](SECURITY.md), not public issues.

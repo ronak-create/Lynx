@@ -1,0 +1,260 @@
+{
+  "label": "microsoft",
+  "query": "Microsoft",
+  "provider": "auto",
+  "llm_providers_configured": [
+    "groq",
+    "cerebras"
+  ],
+  "job_id": "13c553af-39ae-4086-9976-c3103da7d031",
+  "started_at": "2026-08-16T02:06:16.990049+00:00",
+  "entity": "Microsoft",
+  "wall_seconds": 124.36,
+  "resolve_seconds": 2.61,
+  "agents": [
+    {
+      "category": "overview",
+      "start": 8.188,
+      "end": 8.188,
+      "seconds": 0.0,
+      "status": "completed"
+    },
+    {
+      "category": "profile",
+      "start": 8.188,
+      "end": 38.86,
+      "seconds": 30.672,
+      "status": "completed"
+    },
+    {
+      "category": "stock",
+      "start": 39.0,
+      "end": 48.344,
+      "seconds": 9.344,
+      "status": "completed"
+    },
+    {
+      "category": "products",
+      "start": 40.031,
+      "end": 40.031,
+      "seconds": 0.0,
+      "status": "completed"
+    },
+    {
+      "category": "patents",
+      "start": 40.031,
+      "end": 41.047,
+      "seconds": 1.016,
+      "status": "completed"
+    },
+    {
+      "category": "financials",
+      "start": 40.031,
+      "end": 41.5,
+      "seconds": 1.469,
+      "status": "completed"
+    },
+    {
+      "category": "funding",
+      "start": 40.031,
+      "end": 42.5,
+      "seconds": 2.469,
+      "status": "completed"
+    },
+    {
+      "category": "careers",
+      "start": 40.031,
+      "end": 42.688,
+      "seconds": 2.657,
+      "status": "completed"
+    },
+    {
+      "category": "signals",
+      "start": 40.031,
+      "end": 44.031,
+      "seconds": 4.0,
+      "status": "completed"
+    },
+    {
+      "category": "competitors",
+      "start": 40.031,
+      "end": 44.094,
+      "seconds": 4.063,
+      "status": "completed"
+    },
+    {
+      "category": "news",
+      "start": 40.031,
+      "end": 44.61,
+      "seconds": 4.579,
+      "status": "completed"
+    },
+    {
+      "category": "web_presence",
+      "start": 40.031,
+      "end": 49.531,
+      "seconds": 9.5,
+      "status": "completed"
+    },
+    {
+      "category": "social",
+      "start": 40.031,
+      "end": 61.297,
+      "seconds": 21.266,
+      "status": "completed"
+    },
+    {
+      "category": "people",
+      "start": 40.031,
+      "end": 88.25,
+      "seconds": 48.219,
+      "status": "completed"
+    },
+    {
+      "category": "legitimacy",
+      "start": 40.031,
+      "end": 121.438,
+      "seconds": 81.407,
+      "status": "completed"
+    },
+    {
+      "category": "synthesis",
+      "start": 121.453,
+      "end": 121.938,
+      "seconds": 0.485,
+      "status": "completed"
+    },
+    {
+      "category": "documentary",
+      "start": 121.453,
+      "end": 124.36,
+      "seconds": 2.907,
+      "status": "completed"
+    }
+  ],
+  "agents_completed": 17,
+  "agents_failed": 0,
+  "categories": {
+    "careers": {
+      "status": "completed",
+      "payload_bytes": 165
+    },
+    "competitors": {
+      "status": "completed",
+      "payload_bytes": 1094
+    },
+    "financials": {
+      "status": "completed",
+      "payload_bytes": 3793
+    },
+    "funding": {
+      "status": "completed",
+      "payload_bytes": 1040
+    },
+    "legitimacy": {
+      "status": "completed",
+      "payload_bytes": 1962
+    },
+    "news": {
+      "status": "completed",
+      "payload_bytes": 23554
+    },
+    "overview": {
+      "status": "completed",
+      "payload_bytes": 1747
+    },
+    "patents": {
+      "status": "completed",
+      "payload_bytes": 75
+    },
+    "people": {
+      "status": "completed",
+      "payload_bytes": 2261
+    },
+    "products": {
+      "status": "completed",
+      "payload_bytes": 2665
+    },
+    "profile": {
+      "status": "completed",
+      "payload_bytes": 796
+    },
+    "signals": {
+      "status": "completed",
+      "payload_bytes": 124
+    },
+    "social": {
+      "status": "completed",
+      "payload_bytes": 4992
+    },
+    "stock": {
+      "status": "completed",
+      "payload_bytes": 1535
+    },
+    "synthesis": {
+      "status": "completed",
+      "payload_bytes": 2689
+    },
+    "web_presence": {
+      "status": "completed",
+      "payload_bytes": 4195
+    }
+  },
+  "graph": {
+    "nodes": 89,
+    "edges": 97,
+    "node_types": {
+      "person": 11,
+      "product": 40,
+      "company": 25,
+      "technology": 5,
+      "organization": 5,
+      "investor": 3
+    },
+    "edge_types": {
+      "SUBSIDIARY_OF": 9,
+      "USES_TECH": 7,
+      "COMPETES_WITH": 18,
+      "LED_BY": 9,
+      "MAKES": 40,
+      "FOUNDED_BY": 2,
+      "PARENT_OF": 5,
+      "RAISED_FROM": 3,
+      "EMPLOYS": 2,
+      "MENTIONS": 1,
+      "PARTNERED_WITH": 1
+    }
+  },
+  "documentary": {
+    "method": "llm",
+    "words": 1400
+  },
+  "layers": {
+    "total": 11,
+    "by_status": {
+      "hit": 6,
+      "skipped": 4,
+      "empty": 1
+    }
+  },
+  "provenance": {
+    "total": 46,
+    "by_source": {
+      "wikidata": 28,
+      "site": 7,
+      "firecrawl": 3,
+      "github": 2,
+      "gleif": 1,
+      "legitimacy": 1,
+      "sec_edgar": 1,
+      "web": 1,
+      "wikipedia": 1,
+      "yfinance": 1
+    },
+    "by_method": {
+      "llm": 12,
+      "deterministic": 34
+    }
+  },
+  "events": 110
+}

@@ -1,0 +1,14 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Questions and ideas
+    url: https://github.com/ronak-create/Lynx/discussions
+    about: Ask how something works, or float an idea before building it.
+  - name: Discord
+    url: https://discord.gg/XdMmjD5qU
+    about: Chat with other people running Lynx.
+  - name: Code-level documentation
+    url: https://deepwiki.com/ronak-create/Lynx
+    about: Module-by-module walkthrough of the source.
+  - name: Report a security vulnerability
+    url: https://github.com/ronak-create/Lynx/security/advisories/new
+    about: Please report security problems privately, not as a public issue.

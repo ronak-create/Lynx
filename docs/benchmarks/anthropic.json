@@ -1,0 +1,263 @@
+{
+  "label": "anthropic",
+  "query": "Anthropic",
+  "provider": "auto",
+  "llm_providers_configured": [
+    "groq",
+    "cerebras"
+  ],
+  "job_id": "388f4730-a813-40f5-a8be-fb0d126bceae",
+  "started_at": "2026-08-16T02:14:11.085248+00:00",
+  "entity": "Anthropic",
+  "wall_seconds": 43.063,
+  "resolve_seconds": 0.094,
+  "agents": [
+    {
+      "category": "overview",
+      "start": 0.125,
+      "end": 0.125,
+      "seconds": 0.0,
+      "status": "completed"
+    },
+    {
+      "category": "profile",
+      "start": 0.125,
+      "end": 4.75,
+      "seconds": 4.625,
+      "status": "completed"
+    },
+    {
+      "category": "stock",
+      "start": 4.844,
+      "end": 4.859,
+      "seconds": 0.015,
+      "status": "completed"
+    },
+    {
+      "category": "financials",
+      "start": 4.859,
+      "end": 4.859,
+      "seconds": 0.0,
+      "status": "completed"
+    },
+    {
+      "category": "products",
+      "start": 4.859,
+      "end": 4.859,
+      "seconds": 0.0,
+      "status": "completed"
+    },
+    {
+      "category": "patents",
+      "start": 4.859,
+      "end": 4.984,
+      "seconds": 0.125,
+      "status": "completed"
+    },
+    {
+      "category": "web_presence",
+      "start": 4.859,
+      "end": 5.125,
+      "seconds": 0.266,
+      "status": "completed"
+    },
+    {
+      "category": "signals",
+      "start": 4.859,
+      "end": 5.172,
+      "seconds": 0.313,
+      "status": "completed"
+    },
+    {
+      "category": "funding",
+      "start": 4.859,
+      "end": 5.859,
+      "seconds": 1.0,
+      "status": "completed"
+    },
+    {
+      "category": "legitimacy",
+      "start": 4.859,
+      "end": 6.438,
+      "seconds": 1.579,
+      "status": "completed"
+    },
+    {
+      "category": "careers",
+      "start": 4.859,
+      "end": 6.797,
+      "seconds": 1.938,
+      "status": "completed"
+    },
+    {
+      "category": "people",
+      "start": 4.859,
+      "end": 17.578,
+      "seconds": 12.719,
+      "status": "completed"
+    },
+    {
+      "category": "competitors",
+      "start": 4.859,
+      "end": 19.063,
+      "seconds": 14.204,
+      "status": "completed"
+    },
+    {
+      "category": "news",
+      "start": 4.859,
+      "end": 19.203,
+      "seconds": 14.344,
+      "status": "completed"
+    },
+    {
+      "category": "social",
+      "start": 4.859,
+      "end": 29.859,
+      "seconds": 25.0,
+      "status": "completed"
+    },
+    {
+      "category": "synthesis",
+      "start": 29.859,
+      "end": 33.578,
+      "seconds": 3.719,
+      "status": "completed"
+    },
+    {
+      "category": "documentary",
+      "start": 29.859,
+      "end": 43.063,
+      "seconds": 13.204,
+      "status": "completed"
+    }
+  ],
+  "agents_completed": 17,
+  "agents_failed": 0,
+  "categories": {
+    "careers": {
+      "status": "completed",
+      "payload_bytes": 123112
+    },
+    "competitors": {
+      "status": "completed",
+      "payload_bytes": 1024
+    },
+    "financials": {
+      "status": "completed",
+      "payload_bytes": 95
+    },
+    "funding": {
+      "status": "completed",
+      "payload_bytes": 1470
+    },
+    "legitimacy": {
+      "status": "completed",
+      "payload_bytes": 1914
+    },
+    "news": {
+      "status": "completed",
+      "payload_bytes": 22083
+    },
+    "overview": {
+      "status": "completed",
+      "payload_bytes": 1270
+    },
+    "patents": {
+      "status": "completed",
+      "payload_bytes": 75
+    },
+    "people": {
+      "status": "completed",
+      "payload_bytes": 1359
+    },
+    "products": {
+      "status": "completed",
+      "payload_bytes": 1276
+    },
+    "profile": {
+      "status": "completed",
+      "payload_bytes": 594
+    },
+    "signals": {
+      "status": "completed",
+      "payload_bytes": 864
+    },
+    "social": {
+      "status": "completed",
+      "payload_bytes": 26108
+    },
+    "stock": {
+      "status": "completed",
+      "payload_bytes": 69
+    },
+    "synthesis": {
+      "status": "completed",
+      "payload_bytes": 2660
+    },
+    "web_presence": {
+      "status": "completed",
+      "payload_bytes": 3618
+    }
+  },
+  "graph": {
+    "nodes": 65,
+    "edges": 84,
+    "node_types": {
+      "product": 14,
+      "technology": 7,
+      "investor": 13,
+      "company": 14,
+      "person": 7,
+      "organization": 8,
+      "event": 1,
+      "location": 1
+    },
+    "edge_types": {
+      "COMPETES_WITH": 18,
+      "MAKES": 13,
+      "USES_TECH": 13,
+      "RAISED_FROM": 13,
+      "OFFERS": 1,
+      "PARENT_OF": 1,
+      "EMPLOYS": 4,
+      "PARTNERED_WITH": 5,
+      "FOUNDED_BY": 5,
+      "PARTICIPATED_IN": 2,
+      "LED_BY": 2,
+      "OPERATES_IN": 2,
+      "ACQUIRED": 1,
+      "MENTIONS": 3,
+      "SUBSIDIARY_OF": 1
+    }
+  },
+  "documentary": {
+    "method": "llm",
+    "words": 866
+  },
+  "layers": {
+    "total": 11,
+    "by_status": {
+      "hit": 7,
+      "skipped": 4
+    }
+  },
+  "provenance": {
+    "total": 25,
+    "by_source": {
+      "wikidata": 11,
+      "site": 5,
+      "firecrawl": 3,
+      "github": 2,
+      "gleif": 1,
+      "google_news": 1,
+      "legitimacy": 1,
+      "wikipedia": 1
+    },
+    "by_method": {
+      "llm": 10,
+      "deterministic": 15
+    }
+  },
+  "events": 108
+}

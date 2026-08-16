@@ -1,0 +1,54 @@
+name: Data source broken
+description: A source stopped answering, changed shape, or started returning wrong data
+labels: ["source"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Sources change shape without warning — this is the most common way Lynx breaks, and these
+        reports are genuinely the most useful ones.
+
+  - type: dropdown
+    id: source
+    attributes:
+      label: Which source?
+      options:
+        - SEC EDGAR
+        - Wikipedia / Wikidata
+        - Yahoo Finance
+        - Google News
+        - Hacker News
+        - GitHub
+        - Reddit
+        - PatentsView
+        - GLEIF / RDAP / DNS / TLS
+        - Wayback Machine
+        - Trustpilot
+        - ATS boards (Greenhouse / Lever / Ashby / SmartRecruiters)
+        - Jina Reader / Firecrawl
+        - DuckDuckGo
+        - X syndication
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: symptom
+    attributes:
+      label: What does it do now?
+      description: Empty results, wrong values, an HTTP status, a changed payload shape…
+    validations:
+      required: true
+
+  - type: input
+    id: entity
+    attributes:
+      label: An entity that reproduces it
+      placeholder: Duolingo
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: The failing request/response if you have it, or the log line from the fetch layer.
+      render: shell

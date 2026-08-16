@@ -1,0 +1,65 @@
+name: Bug report
+description: Something in the app or the API behaves incorrectly
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. If a **card came back wrong or empty**, that is usually a source
+        problem rather than a crash — please still file it, and include the query you ran.
+        For a security issue, use private reporting instead (see SECURITY.md).
+
+  - type: input
+    id: query
+    attributes:
+      label: What did you research?
+      description: The exact company name or URL you typed.
+      placeholder: Duolingo
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened, and what did you expect?
+      description: Which card, view or endpoint, and what it showed instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. pnpm dev
+        2. Search "…"
+        3. Open the … tab
+
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Model selection for that run
+      options:
+        - "Auto (best available)"
+        - "No LLM (template mode)"
+        - "Pinned to one provider"
+        - "Not sure"
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, how you ran it, and which providers are configured.
+      placeholder: |
+        OS: Windows 11 / macOS 15 / Ubuntu 24.04
+        Ran with: pnpm dev  |  docker compose
+        Output of: curl localhost:8000/health
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: Backend log lines around the failure, or the browser console. Redact any keys.
+      render: shell
