@@ -2,7 +2,7 @@
 import re
 from urllib.parse import urlparse
 
-from rapidfuzz import fuzz
+from rapidfuzz import fuzz, utils
 
 from app.db.engine import get_session
 from app.graph.resolution import get_or_create_entity
@@ -120,7 +120,9 @@ async def resolve_query(query: str) -> dict:
     # ambiguous (Wikipedia returned a disambiguation page like "Lilly", or a non-company like
     # "Apple" the fruit) or the name essentially IS the company (strong SEC match). Guarded by a
     # similarity check so a weak SEC fuzzy-match can't hijack an unrelated term.
-    sim = fuzz.token_set_ratio(name.lower(), sec["title"].lower()) if sec else 0
+    # processor=default_process so punctuation in SEC titles ("Duolingo, Inc.") can't split the
+    # company token off from the query — same trap as sec_edgar.match_company.
+    sim = fuzz.token_set_ratio(name, sec["title"], processor=utils.default_process) if sec else 0
     ambiguous = s is None or s.get("disambiguation")
     if sec and sim >= 60 and (ambiguous or sim >= 88):
         better = await _company_summary(sec["title"])

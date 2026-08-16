@@ -41,9 +41,17 @@ class LLMClient:
             self._clients[cfg.id] = AsyncOpenAI(base_url=cfg.base_url, api_key=cfg.api_key, max_retries=0)
         return self._clients[cfg.id]
 
-    async def _complete(self, system: str, user: str, json_mode: bool, max_tokens: int) -> str | None:
+    async def _complete(
+        self, system: str, user: str, json_mode: bool, max_tokens: int, _may_wait: bool = True
+    ) -> str | None:
+        cooling_until: float | None = None  # soonest moment a skipped provider becomes usable
         for cfg in self.chain:
-            if self._broken_until.get(cfg.id, 0) > time.monotonic():
+            broken_until = self._broken_until.get(cfg.id, 0)
+            if broken_until > time.monotonic():
+                # only a brief rate-limit cooldown is worth waiting on; a circuit-broken
+                # provider (5 min) is treated as gone for this call.
+                if broken_until - time.monotonic() <= RATE_LIMIT_COOLDOWN:
+                    cooling_until = broken_until if cooling_until is None else min(cooling_until, broken_until)
                 continue
             try:
                 kwargs: dict = {}
@@ -76,6 +84,16 @@ class LLMClient:
             except Exception as exc:
                 log.warning("llm provider %s failed: %s", cfg.id, exc)
                 self._broken_until[cfg.id] = time.monotonic() + CIRCUIT_BREAK_SECONDS
+
+        # Every usable provider was in a short rate-limit cooldown. Free tiers 429 constantly and
+        # the cooldown is seconds, so waiting it out once is far better than what returning None
+        # means downstream: the documentary/synthesis silently drop to their template path for the
+        # sake of a ~12s wait. Bounded, and only ever retried once per call.
+        if _may_wait and cooling_until is not None:
+            delay = min(max(cooling_until - time.monotonic(), 0.0), RATE_LIMIT_COOLDOWN) + 0.25
+            log.info("llm chain fully cooling down; waiting %.1fs before one retry", delay)
+            await asyncio.sleep(delay)
+            return await self._complete(system, user, json_mode, max_tokens, _may_wait=False)
         return None
 
     async def generate(self, system: str, user: str, max_tokens: int = 1500) -> str | None:

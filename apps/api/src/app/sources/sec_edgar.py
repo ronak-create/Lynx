@@ -1,5 +1,5 @@
 """SEC EDGAR: ticker directory, recent filings, XBRL company facts (revenue / net income)."""
-from rapidfuzz import fuzz
+from rapidfuzz import fuzz, utils
 
 from app.sources.base import FilingRecord, FinancialFactRecord
 from app.sources.http import fetcher
@@ -31,10 +31,13 @@ async def match_company(name: str) -> dict | None:
     directory = await ticker_directory()
     if not directory:
         return None
-    name_lower = name.lower()
     best, best_score = None, 0.0
     for row in directory:
-        score = fuzz.token_set_ratio(name_lower, row["title"].lower())
+        # default_process strips punctuation before tokenising. Without it, an SEC title of the
+        # form "Duolingo, Inc." tokenises as {"duolingo,", "inc."} — the comma keeps the company
+        # token from matching the query at all, the score lands around 72, and every company named
+        # that way (Airbnb, Cloudflare, Datadog, Duolingo...) is silently reported as private.
+        score = fuzz.token_set_ratio(name, row["title"], processor=utils.default_process)
         # prefer shorter titles on ties (e.g. "Microsoft Corp" over "Microsoft Whatever Trust")
         if score > best_score or (score == best_score and best and len(row["title"]) < len(best["title"])):
             best, best_score = row, score
