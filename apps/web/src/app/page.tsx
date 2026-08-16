@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { MagnifyingGlass, SlidersHorizontal, ArrowRight } from "@phosphor-icons/react";
@@ -12,6 +13,7 @@ import { DocsLink } from "@/components/DocsLink";
 import SwarmWave, { SwarmHandle } from "@/components/SwarmWave";
 import { LynxMark } from "@/components/LynxMark";
 import { RecentResearch } from "@/components/RecentResearch";
+import { SiteFooter } from "@/components/SiteFooter";
 
 export default function SearchPage() {
   const router = useRouter();
@@ -104,6 +106,12 @@ export default function SearchPage() {
         <LynxMark className="h-12 w-12 text-[var(--text-strong)]" />
       </div>
       <div className="fixed top-5 right-5 z-20 flex items-center gap-2">
+        <Link
+          href="/about"
+          className="press hidden rounded-xl px-2.5 py-2 text-[13px] font-medium text-[var(--muted)] hover:text-[var(--text-strong)] sm:block"
+        >
+          About
+        </Link>
         <DocsLink className="hidden sm:flex" />
         <GithubButton />
         <ThemeToggle />
@@ -207,6 +215,10 @@ export default function SearchPage() {
       </div>
 
       {recent.length > 0 && <RecentResearch recent={recent} />}
+      {/* the hero owns the first screen; the footer waits below the fold */}
+      <div className="mt-auto w-full pt-16">
+        <SiteFooter />
+      </div>
     </main>
   );
 }
