@@ -1,4 +1,6 @@
 """Wikipedia REST + action API: summaries, opensearch autocomplete, full plaintext."""
+from urllib.parse import quote
+
 from app.sources.http import fetcher
 
 WIKI_API = "https://en.wikipedia.org/w/api.php"
@@ -28,8 +30,9 @@ async def opensearch(query: str, limit: int = 8) -> list[dict]:
 
 async def summary(title: str) -> dict | None:
     """REST summary: extract, description, wikibase_item, thumbnail url, page url."""
+    encoded_title = quote(title.replace(" ", "_"), safe="")
     data = await fetcher.get_json(
-        "wikipedia", f"{WIKI_REST}/page/summary/{title.replace(' ', '_')}", ttl=WEEK
+        "wikipedia", f"{WIKI_REST}/page/summary/{encoded_title}", ttl=WEEK
     )
     if not isinstance(data, dict) or data.get("type") == "https://mediawiki.org/wiki/HyperSwitch/errors/not_found":
         return None
