@@ -10,6 +10,16 @@ from app.sources import sec_edgar, wikipedia
 from app.sources.http import fetcher
 
 
+def _detect_url(query: str) -> str | None:
+    """Normalize input into an https:// URL if it is a full URL or a bare domain name."""
+    s = query.strip()
+    if re.match(r"^https?://", s, re.IGNORECASE):
+        return s
+    if re.match(r"^(?:www\.)?[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+(?:/[^\s]*)?$", s):
+        return f"https://{s}"
+    return None
+
+
 async def _name_from_url(url: str) -> str | None:
     """Fetch homepage and pull a name from og:site_name / <title>."""
     text = await fetcher.get_text("generic", url, ttl=7 * 24 * 3600)
@@ -97,10 +107,11 @@ async def resolve_query(query: str) -> dict:
     domain = None
     name = query
 
-    if re.match(r"https?://", query):
-        parsed = urlparse(query)
+    url_target = _detect_url(query)
+    if url_target:
+        parsed = urlparse(url_target)
         domain = parsed.netloc.removeprefix("www.")
-        name = (await _name_from_url(query)) or domain.split(".")[0].title()
+        name = (await _name_from_url(url_target)) or domain.split(".")[0].title()
 
     # Wikipedia is the canonical resolver: opensearch -> REST summary, skipping disambiguation pages.
     wiki_title = None
