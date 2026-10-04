@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lynx: see any company clearly</title>
+  <meta name="description" content="Open-source company research. Type a company or paste a URL and fifteen agents research it across public sources, live, on your own machine." />
+  <link rel="canonical" href="https://lynx.ronakparmar.space/" />
+  <meta name="theme-color" content="#090a0f" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://lynx.ronakparmar.space/" />
+  <meta property="og:title" content="Lynx: see any company clearly" />
+  <meta property="og:description" content="Fifteen research agents, public sources, a live dashboard, a knowledge graph and a written documentary. Open source, runs locally." />
+  <meta property="og:image" content="https://lynx.ronakparmar.space/assets/og.jpg" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <link rel="icon" href="assets/brand/lynx-mark.svg" type="image/svg+xml" />
+  <link rel="icon" href="assets/brand/lynx-mark-32.png" sizes="32x32" type="image/png" />
+  <link rel="apple-touch-icon" href="assets/brand/lynx-mark-180.png" />
+
+  <!-- Set the theme before first paint so there is no flash of the wrong mode. -->
+  <script>
+    (function () {
+      try {
+        var m = localStorage.getItem("lynx-theme") || "system";
+        var d = m === "system" ? (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark") : m;
+        document.documentElement.dataset.theme = d;
+        document.documentElement.dataset.mode = m;
+      } catch (e) {
+        document.documentElement.dataset.theme = "dark";
+      }
+    })();
+  </script>
+
+  <link rel="preconnect" href="https://api.fontshare.com" crossorigin />
+  <link href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css" />
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css" />
+  <link rel="preload" as="image" href="assets/shots/dashboard-1600.webp" imagesrcset="assets/shots/dashboard-900.webp 900w, assets/shots/dashboard-1600.webp 1600w" imagesizes="(min-width: 1200px) 1180px, 100vw" fetchpriority="high" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <canvas id="swarm" aria-hidden="true"></canvas>
+  <div id="nav-sentinel" aria-hidden="true"></div>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <header class="nav">
+    <div class="nav-inner">
+      <a class="brand" href="#top" aria-label="Lynx home">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="wordmark">LYNX<span class="dot">.</span></span>
+      </a>
+      <nav class="nav-links" aria-label="Sections">
+        <a href="#views">Product</a>
+        <a href="#how">How it works</a>
+        <a href="#benchmarks">Benchmarks</a>
+        <a href="#quickstart">Quickstart</a>
+      </nav>
+      <div class="nav-actions">
+        <div class="theme" role="radiogroup" aria-label="Color theme">
+          <button type="button" role="radio" data-mode="system" aria-label="System theme"><i class="ph ph-desktop"></i></button>
+          <button type="button" role="radio" data-mode="light" aria-label="Light theme"><i class="ph ph-sun"></i></button>
+          <button type="button" role="radio" data-mode="dark" aria-label="Dark theme"><i class="ph ph-moon"></i></button>
+        </div>
+        <a class="btn btn-ghost btn-sm" href="https://github.com/ronak-create/Lynx" rel="noopener">
+          <i class="ph-fill ph-github-logo"></i><span class="hide-sm">GitHub</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- Hero: left-aligned message, product screenshot bleeding off the right edge -->
+    <section class="hero" id="top" data-hue="258">
+      <div class="wrap">
+        <div class="hero-copy" data-quiet>
+          <h1 class="rise" style="--i:1">See any company <span class="grad">clearly.</span></h1>
+          <p class="lede rise" style="--i:2">Type a company. Fifteen agents research it across public sources, live.</p>
+          <div class="cta-row rise" style="--i:3">
+            <a class="btn btn-primary" href="#quickstart">Get started<i class="ph ph-arrow-right"></i></a>
+            <a class="btn btn-ghost" href="https://github.com/ronak-create/Lynx" rel="noopener"><i class="ph-fill ph-star"></i>Star on GitHub</a>
+          </div>
+        </div>
+      </div>
+      <div class="hero-shot rise" style="--i:4">
+        <img
+          src="assets/shots/dashboard-1600.webp"
+          srcset="assets/shots/dashboard-900.webp 900w, assets/shots/dashboard-1600.webp 1600w"
+          sizes="(min-width: 1200px) 1180px, 100vw"
+          width="1600" height="900"
+          alt="The Lynx dashboard for Anthropic: research agents on the left, an executive summary with legitimacy score, funding, valuation, SWOT and a timeline"
+          fetchpriority="high" />
+      </div>
+    </section>
+
+    <!-- Product views: one run, read three ways (tabbed, real screenshots) -->
+    <section class="section" id="views" data-hue="222">
+      <div class="wrap">
+        <h2 class="reveal" data-quiet>One query, three ways to read it.</h2>
+        <p class="section-lede reveal" data-quiet>Every run fills a dashboard, a knowledge graph and a written documentary from the same cited facts.</p>
+
+        <div class="tabs reveal" role="tablist" aria-label="Product views">
+          <button role="tab" id="tab-dashboard" aria-controls="panel-views" aria-selected="false" tabindex="-1" data-view="dashboard"><i class="ph ph-squares-four"></i>Dashboard</button>
+          <button role="tab" id="tab-graph" aria-controls="panel-views" aria-selected="true" data-view="graph"><i class="ph ph-graph"></i>Graph</button>
+          <button role="tab" id="tab-documentary" aria-controls="panel-views" aria-selected="false" tabindex="-1" data-view="documentary"><i class="ph ph-article"></i>Documentary</button>
+        </div>
+
+        <div class="view reveal" id="panel-views" role="tabpanel" aria-labelledby="tab-graph">
+          <div class="view-media">
+            <img data-view-img="dashboard" src="assets/shots/dashboard-1600.webp" srcset="assets/shots/dashboard-900.webp 900w, assets/shots/dashboard-1600.webp 1600w" sizes="(min-width: 1200px) 1180px, 100vw" width="1600" height="900" loading="lazy" alt="Dashboard with an executive summary, scorecard, SWOT and timeline" />
+            <img data-view-img="graph" class="is-active" src="assets/shots/graph-1600.webp" srcset="assets/shots/graph-900.webp 900w, assets/shots/graph-1600.webp 1600w" sizes="(min-width: 1200px) 1180px, 100vw" width="1600" height="900" loading="lazy" alt="Knowledge graph centred on Anthropic, linking founders, investors, products and competitors" />
+            <img data-view-img="documentary" src="assets/shots/documentary-1600.webp" srcset="assets/shots/documentary-900.webp 900w, assets/shots/documentary-1600.webp 1600w" sizes="(min-width: 1200px) 1180px, 100vw" width="1600" height="900" loading="lazy" alt="A generated research documentary with wiki-linked entities and a research assistant chat panel" />
+          </div>
+          <p class="view-caption" aria-live="polite" data-quiet>
+            <span data-caption="dashboard">A card per category, filling in live as each agent lands. An executive summary sits on top: scorecard, SWOT and a merged timeline.</span>
+            <span data-caption="graph" class="is-active">A force-directed map of people, products, investors and competitors. Click any node for its facts, citations and connections.</span>
+            <span data-caption="documentary">A long-form write-up with wiki-linked entities, plus a chat assistant that answers only from that run's data.</span>
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- How it works: bento of three ideas -->
+    <section class="section" id="how" data-hue="182">
+      <div class="wrap">
+        <h2 class="reveal" data-quiet>Built to show its work.</h2>
+        <p class="section-lede reveal" data-quiet>Every fact comes back with the source it came from, and every gap explains itself.</p>
+
+        <div class="bento">
+          <article class="cell cell-ladder reveal">
+            <h3>Source ladders</h3>
+            <p>Agents walk a ranked list of sources, most authoritative first, and stop at the first rung that answers. Every rung reports what happened.</p>
+            <figure class="ladder" aria-label="Example: the Key People agent's source ladder for Anthropic">
+              <figcaption><i class="ph ph-users-three"></i>Key People, researching Anthropic</figcaption>
+              <ol>
+                <li class="hit">
+                  <i class="ph-fill ph-check-circle"></i>
+                  <span class="rung">Wikidata</span>
+                  <span class="note">found 4 people</span>
+                </li>
+                <li class="miss">
+                  <i class="ph ph-minus-circle"></i>
+                  <span class="rung">Company site</span>
+                  <span class="note">not needed</span>
+                </li>
+                <li class="miss">
+                  <i class="ph ph-minus-circle"></i>
+                  <span class="rung">Web search</span>
+                  <span class="note">not needed</span>
+                </li>
+              </ol>
+            </figure>
+          </article>
+
+          <article class="cell cell-agents reveal">
+            <h3>Fifteen agents, one job each</h3>
+            <p>Each runs in isolation with its own timeout. A source going down costs you one card, never the run.</p>
+            <ul class="chips" aria-label="Research agents">
+              <li>Overview</li><li>Profile</li><li>Stock</li><li>Financials</li><li>Funding</li>
+              <li>Products</li><li>Web presence</li><li>Key people</li><li>News</li><li>Community</li>
+              <li>Patents</li><li>Competitors</li><li>Legitimacy</li><li>Signals</li><li>Careers</li>
+            </ul>
+          </article>
+
+          <article class="cell cell-keys reveal">
+            <i class="ph ph-key cell-icon"></i>
+            <h3>Works without API keys</h3>
+            <p>Every data source works out of the box. Add a free LLM key, like Groq, for richer analysis and a fully written documentary.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Benchmarks: real wall-time numbers from docs/benchmarks -->
+    <section class="section" id="benchmarks" data-hue="150">
+      <div class="wrap bench">
+        <div class="bench-intro reveal" data-quiet>
+          <h2>Measured, not promised.</h2>
+          <p class="section-lede">Real runs against live sources, recorded by the benchmark harness in the repo. Every run finished all 17 passes.</p>
+          <div class="stat">
+            <span class="stat-num">18.2s</span>
+            <span class="stat-label">for a complete run with no language model configured at all</span>
+          </div>
+        </div>
+
+        <figure class="bars reveal" data-quiet aria-label="End-to-end wall time per benchmarked run, in seconds">
+          <div class="bar" style="--v:124.4">
+            <span class="bar-label">Microsoft</span>
+            <span class="bar-track"><span class="bar-fill"></span></span>
+            <span class="bar-val">124.4s</span>
+          </div>
+          <div class="bar" style="--v:56.8">
+            <span class="bar-label">Duolingo</span>
+            <span class="bar-track"><span class="bar-fill"></span></span>
+            <span class="bar-val">56.8s</span>
+          </div>
+          <div class="bar" style="--v:43.1">
+            <span class="bar-label">Anthropic</span>
+            <span class="bar-track"><span class="bar-fill"></span></span>
+            <span class="bar-val">43.1s</span>
+          </div>
+          <div class="bar" style="--v:31.6">
+            <span class="bar-label">figma.com</span>
+            <span class="bar-track"><span class="bar-fill"></span></span>
+            <span class="bar-val">31.6s</span>
+          </div>
+          <div class="bar is-accent" style="--v:18.2">
+            <span class="bar-label">Anthropic, no LLM</span>
+            <span class="bar-track"><span class="bar-fill"></span></span>
+            <span class="bar-val">18.2s</span>
+          </div>
+          <figcaption>
+            Windows 11, one API process, live network. Cache state and free-tier rate limits move these numbers.
+            <a href="https://github.com/ronak-create/Lynx/blob/main/docs/benchmarks/summary.md" rel="noopener">Full results<i class="ph ph-arrow-up-right"></i></a>
+          </figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- Sources: grouped chunks -->
+    <section class="section" id="sources" data-hue="38">
+      <div class="wrap">
+        <p class="eyebrow reveal" data-quiet>Data sources</p>
+        <h2 class="reveal" data-quiet>Free, public sources first.</h2>
+        <p class="section-lede reveal" data-quiet>Metered services sit on the last rung of every ladder, so most runs never touch them.</p>
+
+        <div class="sources reveal">
+          <div class="group">
+            <h3><i class="ph ph-bank"></i>Registries, filings and markets</h3>
+            <ul class="chips"><li>SEC EDGAR</li><li>GLEIF LEI</li><li>RDAP</li><li>PatentsView</li><li>Yahoo Finance</li></ul>
+          </div>
+          <div class="group">
+            <h3><i class="ph ph-books"></i>Reference and archive</h3>
+            <ul class="chips"><li>Wikipedia</li><li>Wikidata</li><li>Wayback Machine</li></ul>
+          </div>
+          <div class="group">
+            <h3><i class="ph ph-newspaper"></i>Coverage and community</h3>
+            <ul class="chips"><li>Google News</li><li>Hacker News</li><li>Reddit</li><li>X</li><li>Trustpilot</li></ul>
+          </div>
+          <div class="group">
+            <h3><i class="ph ph-globe"></i>The company itself</h3>
+            <ul class="chips"><li>Site crawl</li><li>Tech fingerprint</li><li>TLS handshake</li><li>DNS over HTTPS</li></ul>
+          </div>
+          <div class="group">
+            <h3><i class="ph ph-briefcase"></i>Code and hiring</h3>
+            <ul class="chips"><li>GitHub</li><li>Greenhouse</li><li>Lever</li><li>Ashby</li><li>SmartRecruiters</li></ul>
+          </div>
+          <div class="group">
+            <h3><i class="ph ph-magnifying-glass"></i>Search</h3>
+            <ul class="chips"><li>DuckDuckGo</li><li>Firecrawl, optional</li></ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Quickstart: copy-ready commands -->
+    <section class="section" id="quickstart" data-hue="335">
+      <div class="wrap qs">
+        <div class="qs-copy reveal" data-quiet>
+          <h2>Running in a couple of minutes.</h2>
+          <p class="section-lede">Lynx runs on your own machine. Your keys stay in your own <code>.env</code> and every run is saved to a local database.</p>
+          <ul class="reqs">
+            <li><i class="ph ph-check"></i>Docker, or Node 20+ with pnpm and <a href="https://docs.astral.sh/uv/" rel="noopener">uv</a></li>
+            <li><i class="ph ph-check"></i>Set <code>CONTACT_EMAIL</code> in <code>.env</code> (SEC asks for one)</li>
+            <li><i class="ph ph-check"></i>Open <code>localhost:3000</code> and type a company</li>
+          </ul>
+        </div>
+
+        <div class="code reveal">
+          <div class="code-bar">
+            <div class="code-tabs" role="tablist" aria-label="Install method">
+              <button role="tab" aria-selected="true" data-code="docker">Docker</button>
+              <button role="tab" aria-selected="false" tabindex="-1" data-code="local">Local dev</button>
+            </div>
+            <button class="copy" type="button" aria-label="Copy commands"><i class="ph ph-copy"></i><span>Copy</span></button>
+          </div>
+<pre data-code-panel="docker" class="is-active"><code>git clone https://github.com/ronak-create/Lynx.git
+cd Lynx
+cp .env.example .env
+docker compose up --build</code></pre>
+<pre data-code-panel="local"><code>git clone https://github.com/ronak-create/Lynx.git
+cd Lynx
+cp .env.example .env
+cd apps/api &amp;&amp; uv sync &amp;&amp; cd ../..
+pnpm install
+pnpm dev</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- Closing call to action -->
+    <section class="closing" data-hue="266">
+      <div class="wrap closing-inner reveal">
+        <span class="brand-mark closing-mark" aria-hidden="true"></span>
+        <h2>Point it at a company you're curious about.</h2>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="#quickstart">Get started<i class="ph ph-arrow-right"></i></a>
+          <a class="btn btn-ghost" href="https://github.com/ronak-create/Lynx" rel="noopener"><i class="ph-fill ph-star"></i>Star on GitHub</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap footer-inner" data-quiet>
+      <a class="brand" href="#top" aria-label="Back to top">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="wordmark">LYNX<span class="dot">.</span></span>
+      </a>
+      <nav class="footer-links" aria-label="Project links">
+        <a href="https://github.com/ronak-create/Lynx" rel="noopener"><i class="ph ph-github-logo"></i>GitHub</a>
+        <a href="https://discord.gg/XdMmjD5qU" rel="noopener"><i class="ph ph-discord-logo"></i>Discord</a>
+        <a href="https://deepwiki.com/ronak-create/Lynx" rel="noopener"><i class="ph ph-book-open"></i>Code wiki</a>
+        <a href="https://github.com/ronak-create/Lynx/blob/main/LICENSE" rel="noopener"><i class="ph ph-scales"></i>MIT License</a>
+      </nav>
+      <p class="credit">Built by <a href="https://ronakparmar.space" rel="noopener">Ronak Parmar</a></p>
+    </div>
+  </footer>
+
+  <script src="swarm.js" defer></script>
+  <script src="main.js" defer></script>
+</body>
+</html>
