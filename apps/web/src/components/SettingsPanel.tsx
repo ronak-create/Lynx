@@ -29,6 +29,10 @@ export function SettingsPanel() {
   const allCats = config.categories.map((c) => c.id);
   // providers that actually take a key/URL — "auto" and "none" don't
   const keyProviders = config.llm_providers.filter((p) => p.id !== "auto" && p.id !== "none");
+  // the stored choice may be unavailable (the default "auto" with no keys configured): show the
+  // provider the run will actually use instead of a chip that is both selected and disabled
+  const usable = (id: string) => config.llm_providers.some((p) => p.id === id && (p.configured || hasKey(id)));
+  const effectiveProvider = usable(llmProvider) ? llmProvider : "none";
 
   const renderField = (id: string, label: string) => {
     const hint = KEY_HINT[id] ?? { placeholder: "API key" };
@@ -82,7 +86,7 @@ export function SettingsPanel() {
           {config.llm_providers.map((p) => {
             const local = hasKey(p.id);
             const disabled = !p.configured && !local;
-            const selected = llmProvider === p.id;
+            const selected = effectiveProvider === p.id;
             return (
               <button
                 key={p.id}
