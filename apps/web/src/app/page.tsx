@@ -20,6 +20,7 @@ export default function SearchPage() {
   const [query, setQuery] = useState("");
   const [debounced, setDebounced] = useState("");
   const [ghostIdx, setGhostIdx] = useState(0); // which prefix suggestion the ghost text shows
+  const [picked, setPicked] = useState(false); // ↑/↓ chose a suggestion, so Enter takes it
   const [starting, setStarting] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const { llmProvider, categories } = useSettings();
@@ -140,16 +141,21 @@ export default function SearchPage() {
             onChange={(e) => {
               setQuery(e.target.value);
               setGhostIdx(0);
+              setPicked(false);
             }}
             onKeyDown={(e) => {
-              if (e.key === "Enter") start(top ?? query);
+              // Enter searches what was typed: the ghost is only a hint (→ accepts it), else a
+              // full name like "Anthropic" would silently become "Anthropic principle"
+              if (e.key === "Enter") start(picked && top ? top : query);
               // ↑/↓ switch which suggestion the ghost text shows
               else if (e.key === "ArrowDown" && candidates.length) {
                 e.preventDefault();
-                setGhostIdx((i) => Math.min(i + 1, candidates.length - 1));
+                setGhostIdx((i) => (picked ? Math.min(i + 1, candidates.length - 1) : 0));
+                setPicked(true);
               } else if (e.key === "ArrowUp" && candidates.length) {
                 e.preventDefault();
                 setGhostIdx((i) => Math.max(i - 1, 0));
+                setPicked(true);
               }
               // → accepts the ghost completion, but only when the caret is at the end
               else if (e.key === "ArrowRight" && ghost && e.currentTarget.selectionStart === query.length) {
