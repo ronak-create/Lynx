@@ -223,8 +223,10 @@ function SignalBar({ label, value, detail }: { label: string; value: number; det
   return (
     <div className="flex flex-col gap-1">
       <div className="flex items-baseline justify-between gap-2">
-        <span className="text-[12px] text-[var(--text)]">{label}</span>
-        <span className="truncate text-[11px] text-[var(--muted)]">{detail}</span>
+        <span className="shrink-0 whitespace-nowrap text-[12px] text-[var(--text)]">{label}</span>
+        <span className="min-w-0 truncate text-[11px] text-[var(--muted)]" title={detail}>
+          {detail}
+        </span>
       </div>
       <div className="h-1 overflow-hidden rounded-full bg-[var(--panel-2)]">
         <div

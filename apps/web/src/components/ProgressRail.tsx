@@ -33,7 +33,7 @@ function LayerRow({ layer }: { layer: LayerInfo }) {
   return (
     <li className="flex items-center gap-2 py-[3px] pl-[30px] pr-1">
       <LayerIcon status={layer.status} />
-      <span className={`text-[11.5px] ${muted ? "text-[var(--faint)]" : "text-[var(--muted)]"}`}>
+      <span className={`shrink-0 whitespace-nowrap text-[11.5px] ${muted ? "text-[var(--faint)]" : "text-[var(--muted)]"}`}>
         {layer.name}
       </span>
       {layer.status === "hit" && layer.count > 0 && (
@@ -42,7 +42,7 @@ function LayerRow({ layer }: { layer: LayerInfo }) {
         </span>
       )}
       {layer.detail && layer.status !== "hit" && (
-        <span className="ml-auto max-w-[110px] truncate text-[10px] text-[var(--faint)]" title={layer.detail}>
+        <span className="ml-auto min-w-0 max-w-[110px] truncate text-[10px] text-[var(--faint)]" title={layer.detail}>
           {layer.detail}
         </span>
       )}
